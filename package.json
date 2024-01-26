@@ -1,8 +1,8 @@
 {
-  "name": "@bedrock/vc-issuer",
+  "name": "@bedrock/vc-status",
   "version": "25.1.1-0",
   "type": "module",
-  "description": "Bedrock Verifiable Credential Issuer",
+  "description": "Bedrock Verifiable Credential Status Service",
   "main": "./lib/index.js",
   "files": [
     "lib/**/*.js",
@@ -13,7 +13,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/digitalbazaar/bedrock-vc-issuer"
+    "url": "https://github.com/digitalbazaar/bedrock-vc-status"
   },
   "keywords": [
     "bedrock",
@@ -26,9 +26,9 @@
     "url": "https://digitalbazaar.com/"
   },
   "bugs": {
-    "url": "https://github.com/digitalbazaar/bedrock-vc-issuer/issues"
+    "url": "https://github.com/digitalbazaar/bedrock-vc-status/issues"
   },
-  "homepage": "https://github.com/digitalbazaar/bedrock-vc-issuer",
+  "homepage": "https://github.com/digitalbazaar/bedrock-vc-status",
   "dependencies": {
     "@digitalbazaar/bitstring": "^3.0.0",
     "@digitalbazaar/data-integrity": "^2.0.0",

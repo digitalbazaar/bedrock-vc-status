@@ -1,7 +1,7 @@
-# Bedrock Verifiable Credentials Issuer API module _(bedrock-vc-issuer)_
+# Bedrock Verifiable Credentials Status Service API module _(bedrock-vc-status)_
 
-[![Build Status](https://img.shields.io/github/actions/workflow/status/digitalbazaar/bedrock-vc-issuer/main.yml)](https://github.com/digitalbazaar/bedrock-vc-issuer/actions?query=workflow%3A%22Bedrock+Node.js+CI%22)
-[![NPM Version](https://img.shields.io/npm/v/bedrock-vc-issuer.svg)](https://npm.im/bedrock-vc-issuer)
+[![Build Status](https://img.shields.io/github/actions/workflow/status/digitalbazaar/bedrock-vc-status/main.yml)](https://github.com/digitalbazaar/bedrock-vc-status/actions?query=workflow%3A%22Bedrock+Node.js+CI%22)
+[![NPM Version](https://img.shields.io/npm/v/bedrock-vc-status.svg)](https://npm.im/bedrock-vc-status)
 
 > A VC Issuer API library for use with Bedrock applications.
 
@@ -33,7 +33,7 @@ TBD
 To install via NPM:
 
 ```
-npm install --save @bedrock/vc-issuer
+npm install --save @bedrock/vc-status
 ```
 
 ### Development
@@ -41,8 +41,8 @@ npm install --save @bedrock/vc-issuer
 To install locally (for development):
 
 ```
-git clone https://github.com/digitalbazaar/bedrock-vc-issuer.git
-cd bedrock-vc-issuer
+git clone https://github.com/digitalbazaar/bedrock-vc-status.git
+cd bedrock-vc-status
 npm install
 ```
 
@@ -51,17 +51,17 @@ npm install
 In `lib/index.js`:
 
 ```js
-import '@bedrock/vc-issuer';
+import '@bedrock/vc-status';
 ```
 
-Note: The use of [`bedrock-web-vc-issuer`](https://github.com/digitalbazaar/bedrock-web-vc-issuer) client is recommended,
+Note: The use of [`bedrock-web-vc-status`](https://github.com/digitalbazaar/bedrock-web-vc-status) client is recommended,
 to create instances.
 
 ### Issuer HTTP API
 
 This module exposes the following API endpoints.
 
-#### DID Authentication - `POST /vc-issuer/authenticate`
+#### DID Authentication - `POST /vc-status/authenticate`
 
 Example request:
 
@@ -82,7 +82,7 @@ Example request:
 }
 ```
 
-#### Issue a Credential - `POST /vc-issuer/issue`
+#### Issue a Credential - `POST /vc-status/issue`
 `Authorization` header is required.
 
 Example request:
@@ -139,7 +139,7 @@ Example request:
 HTTP 200 OK
 ```
 
-#### Publish RLC - `POST /vc-issuer/instances/:instanceId/rlc/:rlcId/publish`
+#### Publish RLC - `POST /vc-status/instances/:instanceId/rlc/:rlcId/publish`
 Uses either `bedrock-passport` authentication, or an `Authorization` header bearer token.
 
 Example request:
@@ -157,7 +157,7 @@ Example response:
 HTTP 204 No Content
 ```
 
-#### Get RLC - `GET /vc-issuer/instances/:instanceId/rlc/:rlcId`
+#### Get RLC - `GET /vc-status/instances/:instanceId/rlc/:rlcId`
 
 No authz required.
 
