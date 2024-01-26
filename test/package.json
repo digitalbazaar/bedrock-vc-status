@@ -1,5 +1,5 @@
 {
-  "name": "bedrock-vc-issuer-test",
+  "name": "bedrock-vc-status-test",
   "version": "0.0.1",
   "type": "module",
   "private": true,
@@ -39,7 +39,7 @@
     "@bedrock/ssm-mongodb": "^10.1.2",
     "@bedrock/test": "^8.0.5",
     "@bedrock/validation": "^7.0.0",
-    "@bedrock/vc-issuer": "file:..",
+    "@bedrock/vc-status": "file:..",
     "@bedrock/vc-revocation-list-context": "^4.0.0",
     "@bedrock/vc-status-list-context": "^5.0.0",
     "@bedrock/veres-one-context": "^15.0.0",
@@ -59,10 +59,10 @@
   "c8": {
     "excludeNodeModules": false,
     "include": [
-      "node_modules/@bedrock/vc-issuer/**"
+      "node_modules/@bedrock/vc-status/**"
     ],
     "exclude": [
-      "node_modules/@bedrock/vc-issuer/node_modules/**"
+      "node_modules/@bedrock/vc-status/node_modules/**"
     ],
     "reporter": [
       "lcov",
