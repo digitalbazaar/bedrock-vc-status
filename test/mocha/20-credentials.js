@@ -1,22 +1,23 @@
 /*!
- * Copyright (c) 2020-2023 Digital Bazaar, Inc. All rights reserved.
+ * Copyright (c) 2020-2024 Digital Bazaar, Inc. All rights reserved.
  */
 import * as helpers from './helpers.js';
 import {agent} from '@bedrock/https-agent';
 import {CapabilityAgent} from '@digitalbazaar/webkms-client';
 import {createRequire} from 'node:module';
 import {httpClient} from '@digitalbazaar/http-client';
-import {issuer} from '@bedrock/vc-issuer';
+import {issuer} from '@bedrock/vc-status';
 import {klona} from 'klona';
 import {mockData} from './mock.data.js';
 import sinon from 'sinon';
+import {v4 as uuid} from 'uuid';
 
 const require = createRequire(import.meta.url);
 
 const {_CredentialStatusWriter} = issuer;
 
 const {baseUrl} = mockData;
-const serviceType = 'vc-issuer';
+const serviceType = 'vc-status';
 
 // NOTE: using embedded context in mockCredential:
 // https://www.w3.org/2018/credentials/examples/v1
@@ -62,6 +63,10 @@ describe('issue APIs', () => {
       let sl2021RevocationRootZcap;
       let sl2021SuspensionIssuerId;
       let sl2021SuspensionRootZcap;
+      let smallStatusListIssuerId;
+      let smallStatusListRootZcap;
+      let smallTerseStatusListIssuerId;
+      let smallTerseStatusListRootZcap;
       let oauth2IssuerConfig;
       const zcaps = {};
       beforeEach(async () => {
@@ -178,6 +183,44 @@ describe('issue APIs', () => {
             {capabilityAgent, zcaps, statusListOptions, suiteName});
           sl2021SuspensionIssuerId = issuerConfig.id;
           sl2021SuspensionRootZcap =
+            `urn:zcap:root:${encodeURIComponent(issuerConfig.id)}`;
+        }
+
+        // create issuer instance w/ small status list
+        {
+          const statusListOptions = [{
+            type: 'StatusList2021',
+            statusPurpose: 'revocation',
+            suiteName,
+            options: {
+              blockSize: 8,
+              blockCount: 1
+            }
+          }];
+          const issuerConfig = await helpers.createConfig(
+            {capabilityAgent, zcaps, statusListOptions, suiteName});
+          smallStatusListIssuerId = issuerConfig.id;
+          smallStatusListRootZcap =
+            `urn:zcap:root:${encodeURIComponent(issuerConfig.id)}`;
+        }
+
+        // create issuer instance w/ small terse status list
+        {
+          const statusListOptions = [{
+            // FIXME: `TerseBitstringStatusList`
+            type: 'StatusList2021',
+            statusPurpose: 'revocation',
+            suiteName,
+            options: {
+              blockSize: 8,
+              blockCount: 1,
+              listCount: 2
+            }
+          }];
+          const issuerConfig = await helpers.createConfig(
+            {capabilityAgent, zcaps, statusListOptions, suiteName});
+          smallTerseStatusListIssuerId = issuerConfig.id;
+          smallTerseStatusListRootZcap =
             `urn:zcap:root:${encodeURIComponent(issuerConfig.id)}`;
         }
 
@@ -550,7 +593,7 @@ describe('issue APIs', () => {
         });
         it('updates a StatusList2021 revocation credential status',
           async () => {
-          // first issue VC
+            // first issue VC
             const credential = klona(mockCredential);
             const zcapClient = helpers.createZcapClient({capabilityAgent});
             const {data: {verifiableCredential}} = await zcapClient.write({
@@ -646,6 +689,133 @@ describe('issue APIs', () => {
           });
       });
 
+      describe('status scaling /credentials/issue', () => {
+        it('issues VCs with list rollover', async function() {
+          // two minutes to issue and rollover lists
+          this.timeout(1000 * 60 * 2);
+
+          // list size is 8, do two rollovers
+          const listSize = 8;
+          for(let i = 0; i < (listSize * 2 + 1); ++i) {
+            // first issue VC
+            const credential = klona(mockCredential);
+            credential.id = `urn:uuid:${uuid()}`;
+            const zcapClient = helpers.createZcapClient({capabilityAgent});
+            const {data: {verifiableCredential}} = await zcapClient.write({
+              url: `${smallStatusListIssuerId}/credentials/issue`,
+              capability: smallStatusListRootZcap,
+              json: {credential}
+            });
+
+            // get VC status
+            const statusInfo = await helpers.getCredentialStatus(
+              {verifiableCredential});
+            let {status} = statusInfo;
+            status.should.equal(false);
+
+            // then revoke VC
+            let error;
+            try {
+              await zcapClient.write({
+                url: `${smallStatusListIssuerId}/credentials/status`,
+                capability: smallStatusListRootZcap,
+                json: {
+                  credentialId: verifiableCredential.id,
+                  credentialStatus: {
+                    type: 'StatusList2021Entry',
+                    statusPurpose: 'revocation'
+                  }
+                }
+              });
+            } catch(e) {
+              error = e;
+            }
+            assertNoError(error);
+
+            // force publication of new SLC
+            await zcapClient.write({
+              url: `${statusInfo.statusListCredential}/publish`,
+              capability: smallStatusListRootZcap,
+              json: {}
+            });
+
+            // check status of VC has changed
+            ({status} = await helpers.getCredentialStatus(
+              {verifiableCredential}));
+            status.should.equal(true);
+          }
+        });
+
+        it('issues VCs with limited lists', async function() {
+          // two minutes to issue and rollover lists
+          this.timeout(1000 * 60 * 2);
+
+          // list size is 8, do two rollovers to hit list count capacity of 2
+          const listSize = 8;
+          for(let i = 0; i < (listSize * 2 + 1); ++i) {
+            // first issue VC
+            const credential = klona(mockCredential);
+            credential.id = `urn:uuid:${uuid()}`;
+            const zcapClient = helpers.createZcapClient({capabilityAgent});
+            let verifiableCredential;
+            try {
+              ({data: {verifiableCredential}} = await zcapClient.write({
+                url: `${smallTerseStatusListIssuerId}/credentials/issue`,
+                capability: smallTerseStatusListRootZcap,
+                json: {credential}
+              }));
+            } catch(e) {
+              // max list count reached, expected at `listSize * 2` only
+              if(e?.data?.name === 'QuotaExceededError') {
+                i.should.equal(listSize * 2);
+                return;
+              }
+              throw e;
+            }
+
+            // get VC status
+            // FIXME: needs to include `indexAllocator` as TBD property
+            const statusInfo = await helpers.getCredentialStatus(
+              {verifiableCredential});
+            let {status} = statusInfo;
+            status.should.equal(false);
+
+            // then revoke VC
+            let error;
+            try {
+              await zcapClient.write({
+                url: `${smallTerseStatusListIssuerId}/credentials/status`,
+                capability: smallTerseStatusListRootZcap,
+                json: {
+                  credentialId: verifiableCredential.id,
+                  // FIXME: needs to include `indexAllocator` as TBD property
+                  credentialStatus: {
+                    // FIXME: `BitstringStatusListEntry`
+                    type: 'StatusList2021Entry',
+                    statusPurpose: 'revocation'
+                  }
+                }
+              });
+            } catch(e) {
+              error = e;
+            }
+            assertNoError(error);
+
+            // force publication of new SLC
+            await zcapClient.write({
+              url: `${statusInfo.statusListCredential}/publish`,
+              capability: smallTerseStatusListRootZcap,
+              json: {}
+            });
+
+            // check status of VC has changed
+            ({status} = await helpers.getCredentialStatus(
+              {verifiableCredential}));
+            status.should.equal(true);
+          }
+        });
+      });
+
       describe('/credential/issue crash recovery', () => {
         // stub modules in order to simulate failure conditions
         let credentialStatusWriterStub;
@@ -666,6 +836,10 @@ describe('issue APIs', () => {
           mathRandomStub.restore();
           credentialStatusWriterStub.restore();
         });
+
+        // FIXME: add a test that finishes one credential writer but not
+        // another, resulting in a duplicate being detected for one status
+        // but not another -- and a successful recovery from this condition
 
         it('successfully recovers from a simulated crash', async () => {
           const zcapClient = helpers.createZcapClient({capabilityAgent});
@@ -741,6 +915,131 @@ describe('issue APIs', () => {
           }
           should.exist(error);
           error.data.type.should.equal('DuplicateError');
+        });
+
+        it('issues VCs with list rollover', async function() {
+          // two minutes to issue and rollover lists
+          this.timeout(1000 * 60 * 2);
+
+          // list size is 8, do two rollovers
+          const listSize = 8;
+          for(let i = 0; i < (listSize * 2 + 1); ++i) {
+            // first issue VC
+            const credential = klona(mockCredential);
+            credential.id = `urn:uuid:${uuid()}`;
+            const zcapClient = helpers.createZcapClient({capabilityAgent});
+            const {data: {verifiableCredential}} = await zcapClient.write({
+              url: `${smallStatusListIssuerId}/credentials/issue`,
+              capability: smallStatusListRootZcap,
+              json: {credential}
+            });
+
+            // get VC status
+            const statusInfo = await helpers.getCredentialStatus(
+              {verifiableCredential});
+            let {status} = statusInfo;
+            status.should.equal(false);
+
+            // then revoke VC
+            let error;
+            try {
+              await zcapClient.write({
+                url: `${smallStatusListIssuerId}/credentials/status`,
+                capability: smallStatusListRootZcap,
+                json: {
+                  credentialId: verifiableCredential.id,
+                  credentialStatus: {
+                    type: 'StatusList2021Entry',
+                    statusPurpose: 'revocation'
+                  }
+                }
+              });
+            } catch(e) {
+              error = e;
+            }
+            assertNoError(error);
+
+            // force publication of new SLC
+            await zcapClient.write({
+              url: `${statusInfo.statusListCredential}/publish`,
+              capability: smallStatusListRootZcap,
+              json: {}
+            });
+
+            // check status of VC has changed
+            ({status} = await helpers.getCredentialStatus(
+              {verifiableCredential}));
+            status.should.equal(true);
+          }
+        });
+
+        it('issues VCs with limited lists', async function() {
+          // two minutes to issue and rollover lists
+          this.timeout(1000 * 60 * 2);
+
+          // list size is 8, do two rollovers to hit list count capacity of 2
+          const listSize = 8;
+          for(let i = 0; i < (listSize * 2 + 1); ++i) {
+            // first issue VC
+            const credential = klona(mockCredential);
+            credential.id = `urn:uuid:${uuid()}`;
+            const zcapClient = helpers.createZcapClient({capabilityAgent});
+            let verifiableCredential;
+            try {
+              ({data: {verifiableCredential}} = await zcapClient.write({
+                url: `${smallTerseStatusListIssuerId}/credentials/issue`,
+                capability: smallTerseStatusListRootZcap,
+                json: {credential}
+              }));
+            } catch(e) {
+              // max list count reached, expected at `listSize * 2` only
+              if(e?.data?.name === 'QuotaExceededError') {
+                i.should.equal(listSize * 2);
+                return;
+              }
+              throw e;
+            }
+
+            // get VC status
+            // FIXME: needs to include `indexAllocator` as TBD property
+            const statusInfo = await helpers.getCredentialStatus(
+              {verifiableCredential});
+            let {status} = statusInfo;
+            status.should.equal(false);
+
+            // then revoke VC
+            let error;
+            try {
+              await zcapClient.write({
+                url: `${smallTerseStatusListIssuerId}/credentials/status`,
+                capability: smallTerseStatusListRootZcap,
+                json: {
+                  credentialId: verifiableCredential.id,
+                  // FIXME: needs to include `indexAllocator` as TBD property
+                  credentialStatus: {
+                    // FIXME: `BitstringStatusListEntry`
+                    type: 'StatusList2021Entry',
+                    statusPurpose: 'revocation'
+                  }
+                }
+              });
+            } catch(e) {
+              error = e;
+            }
+            assertNoError(error);
+
+            // force publication of new SLC
+            await zcapClient.write({
+              url: `${statusInfo.statusListCredential}/publish`,
+              capability: smallTerseStatusListRootZcap,
+              json: {}
+            });
+
+            // check status of VC has changed
+            ({status} = await helpers.getCredentialStatus(
+              {verifiableCredential}));
+            status.should.equal(true);
+          }
         });
       });
     });
