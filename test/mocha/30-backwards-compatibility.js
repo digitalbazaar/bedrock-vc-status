@@ -1,5 +1,5 @@
 /*!
- * Copyright (c) 2020-2023 Digital Bazaar, Inc. All rights reserved.
+ * Copyright (c) 2020-2024 Digital Bazaar, Inc. All rights reserved.
  */
 import * as helpers from './helpers.js';
 import {agent} from '@bedrock/https-agent';
@@ -12,7 +12,7 @@ import {mockData} from './mock.data.js';
 const require = createRequire(import.meta.url);
 
 const {baseUrl} = mockData;
-const serviceType = 'vc-issuer';
+const serviceType = 'vc-status';
 
 // NOTE: using embedded context in mockCredential:
 // https://www.w3.org/2018/credentials/examples/v1

@@ -1,5 +1,5 @@
 /*!
- * Copyright (c) 2019-2023 Digital Bazaar, Inc. All rights reserved.
+ * Copyright (c) 2019-2024 Digital Bazaar, Inc. All rights reserved.
  */
 import * as bedrock from '@bedrock/core';
 import * as helpers from './helpers.js';
@@ -11,7 +11,7 @@ import {httpClient} from '@digitalbazaar/http-client';
 import {mockData} from './mock.data.js';
 
 const {baseUrl} = mockData;
-const serviceType = 'vc-issuer';
+const serviceType = 'vc-status';
 
 describe('provision API', () => {
   let capabilityAgent;

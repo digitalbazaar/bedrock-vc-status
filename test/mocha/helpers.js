@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019-2023 Digital Bazaar, Inc. All rights reserved.
+ * Copyright (c) 2019-2024 Digital Bazaar, Inc. All rights reserved.
  */
 import * as bedrock from '@bedrock/core';
 import * as database from '@bedrock/mongodb';
@@ -53,9 +53,9 @@ export async function createConfig({
   oauth2 = false, suiteName = 'Ed25519Signature2020'
 } = {}) {
   if(!meterId) {
-    // create a meter for the keystore
+    // create a meter for the status instance
     ({id: meterId} = await createMeter({
-      capabilityAgent, serviceType: 'vc-issuer'
+      capabilityAgent, serviceType: 'vc-status'
     }));
   }
 
@@ -314,7 +314,7 @@ export async function _generateMultikey({
 }
 
 const serviceCoreConfigCollection =
-  database.collections['service-core-config-vc-issuer'];
+  database.collections['service-core-config-vc-status'];
 
 export async function updateConfig({configId, referenceId}) {
   const updateReferenceId = {
