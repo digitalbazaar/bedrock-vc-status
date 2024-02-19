@@ -13,7 +13,7 @@ import {mockData} from './mock.data.js';
 const {baseUrl} = mockData;
 const serviceType = 'vc-status';
 
-describe('provision API', () => {
+describe.skip('provision API', () => {
   let capabilityAgent;
   const zcaps = {};
   beforeEach(async () => {

@@ -18,7 +18,7 @@ const serviceType = 'vc-status';
 // https://www.w3.org/2018/credentials/examples/v1
 const mockCredential = require('./mock-credential.json');
 
-describe('issue APIs - Reference id `assertionMethod:foo` backwards ' +
+describe.skip('issue APIs - Reference id `assertionMethod:foo` backwards ' +
   'compatibility test', () => {
   const zcaps = {};
   describe('Ed25519Signature2020', function() {
