@@ -12,6 +12,7 @@ import '@bedrock/meter-usage-reporter';
 import '@bedrock/server';
 import '@bedrock/kms-http';
 import '@bedrock/edv-storage';
+import '@bedrock/vc-issuer';
 import '@bedrock/vc-status';
 
 import {mockData} from './mocha/mock.data.js';

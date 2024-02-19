@@ -48,14 +48,16 @@ export async function createMeter({capabilityAgent, serviceType} = {}) {
   return {id: `${meterService}/${id}`};
 }
 
+// FIXME: move to `createIssuerConfig` and make `createConfig` create a
+// status instance instead
 export async function createConfig({
   capabilityAgent, ipAllowList, meterId, zcaps, statusListOptions,
   oauth2 = false, suiteName = 'Ed25519Signature2020'
 } = {}) {
   if(!meterId) {
-    // create a meter for the status instance
+    // create a meter for the issuer
     ({id: meterId} = await createMeter({
-      capabilityAgent, serviceType: 'vc-status'
+      capabilityAgent, serviceType: 'vc-issuer'
     }));
   }
 

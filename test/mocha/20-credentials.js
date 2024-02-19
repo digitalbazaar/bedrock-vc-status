@@ -6,7 +6,7 @@ import {agent} from '@bedrock/https-agent';
 import {CapabilityAgent} from '@digitalbazaar/webkms-client';
 import {createRequire} from 'node:module';
 import {httpClient} from '@digitalbazaar/http-client';
-import {issuer} from '@bedrock/vc-status';
+import {issuer} from '@bedrock/vc-issuer';
 import {klona} from 'klona';
 import {mockData} from './mock.data.js';
 import sinon from 'sinon';
