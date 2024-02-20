@@ -16,10 +16,7 @@ export const createStatusListBody = {
       enum: [
         'BitstringStatusList',
         // FIXME: consider removing `StatusList2021` support
-        'StatusList2021',
-        // FIXME: remove support for `RevocationList2020`
-        'RevocationList2020',
-        'TerseBitstringStatusList'
+        'StatusList2021'
       ]
     },
     // an ID value required to track index allocation
@@ -27,10 +24,8 @@ export const createStatusListBody = {
       // an ID (URL) referring to an index allocator
       type: 'string'
     },
-    // FIXME: determine `number` or `string`
-    // FIXME: `size` or `length`?
-    size: {
-      type: 'string'
+    length: {
+      type: 'number'
     }
   }
 };
@@ -46,12 +41,9 @@ export const statusListConfig = {
       type: 'string',
       // supported types in this version
       enum: [
-        // FIXME: add support for `BitstringStatusList`
+        'BitstringStatusList',
         // FIXME: consider removing `StatusList2021` support
-        'StatusList2021',
-        // FIXME: remove support for `RevocationList2020`
-        'RevocationList2020',
-        'TerseBitstringStatusList'
+        'StatusList2021'
       ]
     },
     // FIXME: make `baseUrl` required once status service is separated
@@ -120,6 +112,7 @@ export const statusListOptions = {
 export const updateCredentialStatusBody = {
   title: 'Update Credential Status',
   type: 'object',
+  // FIXME: consider if `indexAllocator` should be required
   required: ['credentialId', 'credentialStatus'],
   additionalProperties: false,
   properties: {
@@ -128,10 +121,16 @@ export const updateCredentialStatusBody = {
     },
     credentialStatus: {
       type: 'object',
-      required: ['type'],
+      required: ['type', 'statusPurpose'],
       additionalProperties: false,
       properties: {
         type: {
+          type: 'string'
+        },
+        statusListCredential: {
+          type: 'string'
+        },
+        statusListIndex: {
           type: 'string'
         },
         statusPurpose: {
