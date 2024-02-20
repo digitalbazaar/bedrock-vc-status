@@ -17,7 +17,8 @@ const require = createRequire(import.meta.url);
 const {_CredentialStatusWriter} = issuer;
 
 const {baseUrl} = mockData;
-const serviceType = 'vc-status';
+// FIXME: rework tests to create status instances that using issuer instances
+//const serviceType = 'vc-status';
 
 // NOTE: using embedded context in mockCredential:
 // https://www.w3.org/2018/credentials/examples/v1
@@ -25,21 +26,21 @@ const mockCredential = require('./mock-credential.json');
 
 describe.skip('issue APIs', () => {
   const suiteNames = {
-    Ed25519Signature2018: {
-      algorithm: 'Ed25519'
-    },
-    Ed25519Signature2020: {
-      algorithm: 'Ed25519'
-    },
+    // Ed25519Signature2018: {
+    //   algorithm: 'Ed25519'
+    // },
+    // Ed25519Signature2020: {
+    //   algorithm: 'Ed25519'
+    // },
     'eddsa-rdfc-2022': {
       algorithm: 'Ed25519'
     },
-    'ecdsa-rdfc-2019': {
-      algorithm: ['P-256', 'P-384']
-    },
-    'ecdsa-sd-2023': {
-      algorithm: ['P-256']
-    }
+    // 'ecdsa-rdfc-2019': {
+    //   algorithm: ['P-256', 'P-384']
+    // },
+    // 'ecdsa-sd-2023': {
+    //   algorithm: ['P-256']
+    // }
   };
   for(const suiteName in suiteNames) {
     const suiteInfo = suiteNames[suiteName];
@@ -103,7 +104,7 @@ describe.skip('issue APIs', () => {
 
         // get service agent to delegate to
         const serviceAgentUrl =
-          `${baseUrl}/service-agents/${encodeURIComponent(serviceType)}`;
+          `${baseUrl}/service-agents/${encodeURIComponent('vc-issuer')}`;
         const {data: serviceAgent} = await httpClient.get(
           serviceAgentUrl, {agent});
 
