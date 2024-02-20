@@ -285,34 +285,16 @@ export async function delegate({
   });
 }
 
-export async function getCredentialStatus({verifiableCredential}) {
-  // get SLC for the VC
-  const {credentialStatus} = verifiableCredential;
-  if(Array.isArray(credentialStatus)) {
-    throw new Error('Multiple credential statuses not supported.');
-  }
-  let slcUrl;
-  let statusListIndexProperty;
-  if(credentialStatus.type === 'TerseBitstringStatusList') {
-    // FIXME: retrieve issuer controller doc and get status list based
-    // on hash of VM used to sign VC... via terse-bitstring-status-list lib
-    // if possible
-    throw new Error('"TerseBitstringStatusList" not implemented.');
-  } else {
-    slcUrl = credentialStatus.statusListCredential;
-    statusListIndexProperty = 'statusListIndex';
-  }
-  if(!slcUrl) {
-    throw new Error('Status list credential missing from credential status.');
-  }
-  const {data: slc} = await httpClient.get(slcUrl, {agent: httpsAgent});
+export async function getCredentialStatus({
+  statusListCredential, statusListIndex
+}) {
+  const {data: slc} = await httpClient.get(
+    statusListCredential, {agent: httpsAgent});
 
   const {encodedList} = slc.credentialSubject;
   const list = await decodeList({encodedList});
-  const statusListIndex = parseInt(
-    credentialStatus[statusListIndexProperty], 10);
-  const status = list.getStatus(statusListIndex);
-  return {status, statusListCredential: slcUrl};
+  const status = list.getStatus(parseInt(statusListIndex, 10));
+  return {status, statusListCredential, statusListIndex};
 }
 
 export async function provisionDependencies() {
