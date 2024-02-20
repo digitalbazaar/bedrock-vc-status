@@ -8,6 +8,7 @@ import {
 export const createStatusListBody = {
   title: 'Create Status List',
   type: 'object',
+  required: ['type', 'indexAllocator', 'length'],
   additionalProperties: false,
   properties: {
     type: {
