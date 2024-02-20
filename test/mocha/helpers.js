@@ -6,7 +6,6 @@ import * as database from '@bedrock/mongodb';
 import {importJWK, SignJWT} from 'jose';
 import {KeystoreAgent, KmsClient} from '@digitalbazaar/webkms-client';
 import {agent} from '@bedrock/https-agent';
-import {AsymmetricKey} from '@digitalbazaar/webkms-client';
 import {CapabilityAgent} from '@digitalbazaar/webkms-client';
 import {decodeList} from '@digitalbazaar/vc-status-list';
 import {didIo} from '@bedrock/did-io';
@@ -446,24 +445,6 @@ async function keyResolver({id}) {
   // support HTTP-based keys; currently a requirement for WebKMS
   const {data} = await httpClient.get(id, {agent: httpsAgent});
   return data;
-}
-
-export async function _generateMultikey({
-  keystoreAgent, type, publicAliasTemplate
-}) {
-  const {capabilityAgent, kmsClient} = keystoreAgent;
-  const invocationSigner = capabilityAgent.getSigner();
-  const {keyId, keyDescription} = await kmsClient.generateKey({
-    type,
-    suiteContextUrl: 'https://w3id.org/security/multikey/v1',
-    invocationSigner,
-    publicAliasTemplate
-  });
-  const {id} = keyDescription;
-  ({type} = keyDescription);
-  return new AsymmetricKey({
-    id, kmsId: keyId, type, invocationSigner, kmsClient, keyDescription
-  });
 }
 
 const serviceCoreConfigCollection =
