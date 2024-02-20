@@ -8,75 +8,21 @@ import {CapabilityAgent} from '@digitalbazaar/webkms-client';
 import {httpClient} from '@digitalbazaar/http-client';
 import {mockData} from './mock.data.js';
 
-const {baseUrl} = mockData;
-// FIXME: rework tests to create status instances that using issuer instances
-//const serviceType = 'vc-status';
-
 describe('provision API', () => {
   let capabilityAgent;
-  const zcaps = {};
+  let statusIssueZcap;
   beforeEach(async () => {
-    const secret = '53ad64ce-8e1d-11ec-bb12-10bf48838a41';
-    const handle = 'test';
-    capabilityAgent = await CapabilityAgent.fromSecret({secret, handle});
-
-    // create keystore for capability agent
-    const keystoreAgent = await helpers.createKeystoreAgent(
-      {capabilityAgent});
-
-    // generate key for signing VCs (make it a did:key DID for simplicity)
-    const assertionMethodKey = await keystoreAgent.generateKey({
-      type: 'asymmetric',
-      publicAliasTemplate: 'did:key:{publicKeyMultibase}#{publicKeyMultibase}'
-    });
-
-    // create EDV for storage (creating hmac and kak in the process)
-    const {
-      edvConfig,
-      hmac,
-      keyAgreementKey
-    } = await helpers.createEdv({capabilityAgent, keystoreAgent});
-
-    // get service agent to delegate to
-    const serviceAgentUrl =
-      `${baseUrl}/service-agents/${encodeURIComponent('vc-issuer')}`;
-    const {data: serviceAgent} = await httpClient.get(
-      serviceAgentUrl, {agent});
-
-    // delegate edv, hmac, and key agreement key zcaps to service agent
-    const {id: edvId} = edvConfig;
-    zcaps.edv = await helpers.delegate({
-      controller: serviceAgent.id,
-      delegator: capabilityAgent,
-      invocationTarget: edvId
-    });
-    const {keystoreId} = keystoreAgent;
-    zcaps.hmac = await helpers.delegate({
-      capability: `urn:zcap:root:${encodeURIComponent(keystoreId)}`,
-      controller: serviceAgent.id,
-      invocationTarget: hmac.id,
-      delegator: capabilityAgent
-    });
-    zcaps.keyAgreementKey = await helpers.delegate({
-      capability: `urn:zcap:root:${encodeURIComponent(keystoreId)}`,
-      controller: serviceAgent.id,
-      invocationTarget: keyAgreementKey.kmsId,
-      delegator: capabilityAgent
-    });
-    zcaps.assertionMethod = await helpers
-      .delegate({
-        capability: `urn:zcap:root:${encodeURIComponent(keystoreId)}`,
-        controller: serviceAgent.id,
-        invocationTarget: assertionMethodKey.kmsId,
-        delegator: capabilityAgent
-      });
+    ({
+      capabilityAgent, statusIssueZcap
+    } = await helpers.provisionDependencies());
   });
+
   describe('create config', () => {
     it('throws error on missing zcaps', async () => {
       let err;
       let result;
       try {
-        result = await helpers.createConfig({capabilityAgent});
+        result = await helpers.createStatusConfig({capabilityAgent});
       } catch(e) {
         err = e;
       }
@@ -87,52 +33,53 @@ describe('provision API', () => {
       error.name.should.equal('ValidationError');
       error.message.should.contain(`should have required property 'zcaps'`);
     });
+    it('throws error on bad zcaps', async () => {
+      let err;
+      let result;
+      try {
+        result = await helpers.createStatusConfig({
+          capabilityAgent, zcaps: {invalid: ''}
+        });
+      } catch(e) {
+        err = e;
+      }
+      should.exist(err);
+      should.not.exist(result);
+      err.data.details.errors.should.have.length(1);
+      const [error] = err.data.details.errors;
+      error.name.should.equal('ValidationError');
+      error.message.should.contain('should NOT have additional properties');
+    });
     it('creates a config', async () => {
       let err;
       let result;
       try {
-        result = await helpers.createConfig({capabilityAgent, zcaps});
+        const zcaps = {
+          issue: statusIssueZcap
+        };
+        result = await helpers.createStatusConfig({capabilityAgent, zcaps});
       } catch(e) {
         err = e;
       }
       assertNoError(err);
       should.exist(result);
       result.should.have.keys([
-        'controller', 'id', 'sequence', 'meterId', 'zcaps', 'issueOptions'
+        'controller', 'id', 'sequence', 'meterId', 'zcaps'
       ]);
       result.sequence.should.equal(0);
       const {id: capabilityAgentId} = capabilityAgent;
       result.controller.should.equal(capabilityAgentId);
     });
-    it('throws error when creating a config without assertion method zcap',
-      async () => {
-        let err;
-        let result;
-        try {
-          const zcapsCopy = {...zcaps};
-          delete zcapsCopy.assertionMethod;
-          result = await helpers.createConfig({
-            capabilityAgent, zcaps: zcapsCopy
-          });
-        } catch(e) {
-          err = e;
-        }
-        should.exist(err);
-        should.not.exist(result);
-        err.data.name.should.equal('DataError');
-        err.data.message.should.equal('Configuration validation failed.');
-        const {cause} = err.data.details;
-        cause.message.should.equal(
-          'No capability available to sign using suite ' +
-          '"Ed25519Signature2020".');
-      });
     it('creates a config including proper ipAllowList', async () => {
       const ipAllowList = ['127.0.0.1/32', '::1/128'];
 
       let err;
       let result;
       try {
-        result = await helpers.createConfig(
+        const zcaps = {
+          issue: statusIssueZcap
+        };
+        result = await helpers.createStatusConfig(
           {capabilityAgent, ipAllowList, zcaps});
       } catch(e) {
         err = e;
@@ -140,8 +87,7 @@ describe('provision API', () => {
       assertNoError(err);
       should.exist(result);
       result.should.have.keys([
-        'controller', 'id', 'ipAllowList', 'sequence', 'meterId', 'zcaps',
-        'issueOptions'
+        'controller', 'id', 'ipAllowList', 'sequence', 'meterId', 'zcaps'
       ]);
       result.sequence.should.equal(0);
       const {id: capabilityAgentId} = capabilityAgent;
@@ -155,7 +101,10 @@ describe('provision API', () => {
       let err;
       let result;
       try {
-        result = await helpers.createConfig(
+        const zcaps = {
+          issue: statusIssueZcap
+        };
+        result = await helpers.createStatusConfig(
           {capabilityAgent, ipAllowList, zcaps});
       } catch(e) {
         err = e;
@@ -175,7 +124,10 @@ describe('provision API', () => {
       let err;
       let result;
       try {
-        result = await helpers.createConfig(
+        const zcaps = {
+          issue: statusIssueZcap
+        };
+        result = await helpers.createStatusConfig(
           {capabilityAgent, ipAllowList, zcaps});
       } catch(e) {
         err = e;
@@ -211,7 +163,10 @@ describe('provision API', () => {
 
   describe('get config', () => {
     it('gets a config', async () => {
-      const config = await helpers.createConfig(
+      const zcaps = {
+        issue: statusIssueZcap
+      };
+      const config = await helpers.createStatusConfig(
         {capabilityAgent, zcaps});
       let err;
       let result;
@@ -223,12 +178,15 @@ describe('provision API', () => {
       assertNoError(err);
       should.exist(result);
       result.should.have.keys([
-        'controller', 'id', 'sequence', 'meterId', 'zcaps', 'issueOptions'
+        'controller', 'id', 'sequence', 'meterId', 'zcaps'
       ]);
       result.id.should.equal(config.id);
     });
     it('gets a config w/oauth2', async () => {
-      const config = await helpers.createConfig(
+      const zcaps = {
+        issue: statusIssueZcap
+      };
+      const config = await helpers.createStatusConfig(
         {capabilityAgent, zcaps, oauth2: true});
       const accessToken = await helpers.getOAuth2AccessToken(
         {configId: config.id, action: 'read', target: '/'});
@@ -242,15 +200,17 @@ describe('provision API', () => {
       assertNoError(err);
       should.exist(result);
       result.should.have.keys([
-        'authorization', 'controller', 'id', 'sequence', 'meterId', 'zcaps',
-        'issueOptions'
+        'authorization', 'controller', 'id', 'sequence', 'meterId', 'zcaps'
       ]);
       result.id.should.equal(config.id);
     });
     it('gets a config with ipAllowList', async () => {
       const ipAllowList = ['127.0.0.1/32', '::1/128'];
 
-      const config = await helpers.createConfig(
+      const zcaps = {
+        issue: statusIssueZcap
+      };
+      const config = await helpers.createStatusConfig(
         {capabilityAgent, ipAllowList, zcaps});
       let err;
       let result;
@@ -262,8 +222,7 @@ describe('provision API', () => {
       assertNoError(err);
       should.exist(result);
       result.should.have.keys([
-        'controller', 'id', 'ipAllowList', 'sequence', 'meterId', 'zcaps',
-        'issueOptions'
+        'controller', 'id', 'ipAllowList', 'sequence', 'meterId', 'zcaps'
       ]);
       result.should.have.property('id');
       result.id.should.equal(config.id);
@@ -272,7 +231,10 @@ describe('provision API', () => {
     it('returns NotAllowedError for invalid source IP', async () => {
       const ipAllowList = ['8.8.8.8/32'];
 
-      const config = await helpers.createConfig(
+      const zcaps = {
+        issue: statusIssueZcap
+      };
+      const config = await helpers.createStatusConfig(
         {capabilityAgent, ipAllowList, zcaps});
       let err;
       let result;
@@ -298,7 +260,10 @@ describe('provision API', () => {
       let result;
       let existingConfig;
       try {
-        existingConfig = result = await helpers.createConfig(
+        const zcaps = {
+          issue: statusIssueZcap
+        };
+        existingConfig = result = await helpers.createStatusConfig(
           {capabilityAgent, zcaps});
       } catch(e) {
         err = e;
@@ -332,7 +297,7 @@ describe('provision API', () => {
       should.exist(result.data);
       result.status.should.equal(200);
       result.data.should.have.keys([
-        'id', 'controller', 'sequence', 'meterId', 'zcaps', 'issueOptions'
+        'id', 'controller', 'sequence', 'meterId', 'zcaps'
       ]);
       const expectedConfig = {
         ...existingConfig,
@@ -373,7 +338,10 @@ describe('provision API', () => {
       let result;
       let existingConfig;
       try {
-        existingConfig = result = await helpers.createConfig(
+        const zcaps = {
+          issue: statusIssueZcap
+        };
+        existingConfig = result = await helpers.createStatusConfig(
           {capabilityAgent, zcaps});
       } catch(e) {
         err = e;
@@ -428,8 +396,7 @@ describe('provision API', () => {
       should.exist(result.data);
       result.status.should.equal(200);
       result.data.should.have.keys([
-        'id', 'controller', 'sequence', 'meterId', 'authorization', 'zcaps',
-        'issueOptions'
+        'id', 'controller', 'sequence', 'meterId', 'authorization', 'zcaps'
       ]);
       let expectedConfig = {
         ...existingConfig,
@@ -468,7 +435,7 @@ describe('provision API', () => {
       should.exist(result.data);
       result.status.should.equal(200);
       result.data.should.have.keys([
-        'id', 'controller', 'sequence', 'meterId', 'zcaps', 'issueOptions'
+        'id', 'controller', 'sequence', 'meterId', 'zcaps'
       ]);
       expectedConfig = {
         ...existingConfig,
@@ -498,7 +465,10 @@ describe('provision API', () => {
       let err;
       let result;
       try {
-        result = await helpers.createConfig(
+        const zcaps = {
+          issue: statusIssueZcap
+        };
+        result = await helpers.createStatusConfig(
           {capabilityAgent, zcaps});
       } catch(e) {
         err = e;
@@ -546,7 +516,10 @@ describe('provision API', () => {
       let err;
       let result;
       try {
-        result = await helpers.createConfig(
+        const zcaps = {
+          issue: statusIssueZcap
+        };
+        result = await helpers.createStatusConfig(
           {capabilityAgent, zcaps});
       } catch(e) {
         err = e;
@@ -592,7 +565,10 @@ describe('provision API', () => {
         let result;
         let existingConfig;
         try {
-          existingConfig = result = await helpers.createConfig(
+          const zcaps = {
+            issue: statusIssueZcap
+          };
+          existingConfig = result = await helpers.createStatusConfig(
             {capabilityAgent, ipAllowList, zcaps});
         } catch(e) {
           err = e;
@@ -626,8 +602,7 @@ describe('provision API', () => {
         should.exist(result.data);
         result.status.should.equal(200);
         result.data.should.have.keys([
-          'id', 'controller', 'sequence', 'meterId', 'ipAllowList', 'zcaps',
-          'issueOptions'
+          'id', 'controller', 'sequence', 'meterId', 'ipAllowList', 'zcaps'
         ]);
         const expectedConfig = {
           ...existingConfig,
@@ -672,7 +647,10 @@ describe('provision API', () => {
         let err;
         let result;
         try {
-          result = await helpers.createConfig(
+          const zcaps = {
+            issue: statusIssueZcap
+          };
+          result = await helpers.createStatusConfig(
             {capabilityAgent, ipAllowList, zcaps});
         } catch(e) {
           err = e;
@@ -712,7 +690,10 @@ describe('provision API', () => {
 
   describe('revocations', () => {
     it('throws error with invalid zcap when revoking', async () => {
-      const config = await helpers.createConfig({capabilityAgent, zcaps});
+      const zcaps = {
+        issue: statusIssueZcap
+      };
+      const config = await helpers.createStatusConfig({capabilityAgent, zcaps});
       const zcap = {
         '@context': ['https://w3id.org/zcap/v1'],
         id: 'urn:uuid:895d985c-8e20-11ec-b82f-10bf48838a41',
@@ -736,7 +717,10 @@ describe('provision API', () => {
         'A validation error occured in the \'Delegated ZCAP\' validator.');
     });
     it('revokes a zcap', async () => {
-      const config = await helpers.createConfig({capabilityAgent, zcaps});
+      const zcaps = {
+        issue: statusIssueZcap
+      };
+      const config = await helpers.createStatusConfig({capabilityAgent, zcaps});
 
       const capabilityAgent2 = await CapabilityAgent.fromSecret(
         {secret: 's2', handle: 'h2'});
@@ -752,7 +736,7 @@ describe('provision API', () => {
         {capabilityAgent: capabilityAgent2});
       const {data} = await zcapClient.read({capability: zcap});
       data.should.have.keys([
-        'controller', 'id', 'sequence', 'meterId', 'zcaps', 'issueOptions'
+        'controller', 'id', 'sequence', 'meterId', 'zcaps'
       ]);
       data.id.should.equal(config.id);
 

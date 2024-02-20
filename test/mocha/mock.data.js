@@ -72,3 +72,118 @@ mockData.jwks = {
     key_ops: ['verify']
   }]
 };
+
+/* eslint-disable */
+mockData.examplesContext = {
+  // Note: minor edit to remove unused ODRL context
+  "@context": {
+    "ex": "https://example.org/examples#",
+    "schema": "http://schema.org/",
+    "rdf": "http://www.w3.org/1999/02/22-rdf-syntax-ns#",
+
+    "3rdPartyCorrelation": "ex:3rdPartyCorrelation",
+    "AllVerifiers": "ex:AllVerifiers",
+    "Archival": "ex:Archival",
+    "BachelorDegree": "ex:BachelorDegree",
+    "Child": "ex:Child",
+    "CLCredentialDefinition2019": "ex:CLCredentialDefinition2019",
+    "CLSignature2019": "ex:CLSignature2019",
+    "IssuerPolicy": "ex:IssuerPolicy",
+    "HolderPolicy": "ex:HolderPolicy",
+    "Mother": "ex:Mother",
+    "RelationshipCredential": "ex:RelationshipCredential",
+    "UniversityDegreeCredential": "ex:UniversityDegreeCredential",
+    "AlumniCredential": "ex:AlumniCredential",
+    "DisputeCredential": "ex:DisputeCredential",
+    "PrescriptionCredential": "ex:PrescriptionCredential",
+    "ZkpExampleSchema2018": "ex:ZkpExampleSchema2018",
+
+    "issuerData": "ex:issuerData",
+    "attributes": "ex:attributes",
+    "signature": "ex:signature",
+    "signatureCorrectnessProof": "ex:signatureCorrectnessProof",
+    "primaryProof": "ex:primaryProof",
+    "nonRevocationProof": "ex:nonRevocationProof",
+
+    "alumniOf": {"@id": "schema:alumniOf", "@type": "rdf:HTML"},
+    "child": {"@id": "ex:child", "@type": "@id"},
+    "degree": "ex:degree",
+    "degreeType": "ex:degreeType",
+    "degreeSchool": "ex:degreeSchool",
+    "college": "ex:college",
+    "name": {"@id": "schema:name", "@type": "rdf:HTML"},
+    "givenName": "schema:givenName",
+    "familyName": "schema:familyName",
+    "parent": {"@id": "ex:parent", "@type": "@id"},
+    "referenceId": "ex:referenceId",
+    "documentPresence": "ex:documentPresence",
+    "evidenceDocument": "ex:evidenceDocument",
+    "spouse": "schema:spouse",
+    "subjectPresence": "ex:subjectPresence",
+    "verifier": {"@id": "ex:verifier", "@type": "@id"},
+    "currentStatus": "ex:currentStatus",
+    "statusReason": "ex:statusReason",
+    "prescription": "ex:prescription"
+  }
+};
+/* eslint-enable */
+
+/* eslint-disable */
+mockData.prcCredentialContext = {
+  "@context": {
+    "@version": 1.1,
+    "@protected": true,
+    "name": "http://schema.org/name",
+    "description": "http://schema.org/description",
+    "identifier": "http://schema.org/identifier",
+    "image": {
+      "@id": "http://schema.org/image",
+      "@type": "@id"
+    },
+    "PermanentResidentCard": {
+      "@id": "https://w3id.org/citizenship#PermanentResidentCard",
+      "@context": {
+        "@version": 1.1,
+        "@protected": true,
+        "id": "@id",
+        "type": "@type",
+        "description": "http://schema.org/description",
+        "name": "http://schema.org/name",
+        "identifier": "http://schema.org/identifier",
+        "image": {
+          "@id": "http://schema.org/image",
+          "@type": "@id"
+        }
+      }
+    },
+    "PermanentResident": {
+      "@id": "https://w3id.org/citizenship#PermanentResident",
+      "@context": {
+        "@version": 1.1,
+        "@protected": true,
+        "id": "@id",
+        "type": "@type",
+        "ctzn": "https://w3id.org/citizenship#",
+        "schema": "http://schema.org/",
+        "xsd": "http://www.w3.org/2001/XMLSchema#",
+        "birthCountry": "ctzn:birthCountry",
+        "birthDate": {
+          "@id": "schema:birthDate",
+          "@type": "xsd:dateTime"
+        },
+        "commuterClassification": "ctzn:commuterClassification",
+        "familyName": "schema:familyName",
+        "gender": "schema:gender",
+        "givenName": "schema:givenName",
+        "lprCategory": "ctzn:lprCategory",
+        "lprNumber": "ctzn:lprNumber",
+        "residentSince": {
+          "@id": "ctzn:residentSince",
+          "@type": "xsd:dateTime"
+        }
+      }
+    },
+    "Person": "http://schema.org/Person"
+  }
+};
+/* eslint-enable */

@@ -5,7 +5,9 @@ import * as bedrock from '@bedrock/core';
 import * as database from '@bedrock/mongodb';
 import {importJWK, SignJWT} from 'jose';
 import {KeystoreAgent, KmsClient} from '@digitalbazaar/webkms-client';
+import {agent} from '@bedrock/https-agent';
 import {AsymmetricKey} from '@digitalbazaar/webkms-client';
+import {CapabilityAgent} from '@digitalbazaar/webkms-client';
 import {decodeList} from '@digitalbazaar/vc-status-list';
 import {didIo} from '@bedrock/did-io';
 import {Ed25519Signature2020} from '@digitalbazaar/ed25519-signature-2020';
@@ -21,6 +23,70 @@ const edvBaseUrl = `${mockData.baseUrl}/edvs`;
 const kmsBaseUrl = `${mockData.baseUrl}/kms`;
 
 const FIVE_MINUTES = 1000 * 60 * 5;
+
+export async function createConfig({
+  serviceType, url, capabilityAgent, ipAllowList, meterId, zcaps,
+  configOptions = {}, oauth2 = false
+} = {}) {
+  if(!meterId) {
+    // create a meter
+    ({id: meterId} = await createMeter({capabilityAgent, serviceType}));
+  }
+
+  // create service object
+  const config = {
+    sequence: 0,
+    controller: capabilityAgent.id,
+    meterId,
+    ...configOptions
+  };
+  if(ipAllowList) {
+    config.ipAllowList = ipAllowList;
+  }
+  if(zcaps) {
+    config.zcaps = zcaps;
+  }
+  if(oauth2) {
+    const {baseUri} = bedrock.config.server;
+    config.authorization = {
+      oauth2: {
+        issuerConfigUrl: `${baseUri}${mockData.oauth2IssuerConfigRoute}`
+      }
+    };
+  }
+
+  const zcapClient = createZcapClient({capabilityAgent});
+  const response = await zcapClient.write({url, json: config});
+  return response.data;
+}
+
+export async function createStatusConfig({
+  capabilityAgent, ipAllowList, meterId, zcaps, oauth2 = false
+} = {}) {
+  const url = `${mockData.baseUrl}/vc-status`;
+  return createConfig({
+    serviceType: 'vc-status',
+    url, capabilityAgent, ipAllowList, meterId, zcaps, oauth2
+  });
+}
+
+export async function createIssuerConfig({
+  capabilityAgent, ipAllowList, meterId, zcaps,
+  statusListOptions, oauth2 = false
+} = {}) {
+  const url = `${mockData.baseUrl}/issuers`;
+  // issuer-specific options
+  const configOptions = {
+    issueOptions: {
+      suiteName: 'eddsa-rdfc-2022'
+    },
+    statusListOptions
+  };
+  return createConfig({
+    serviceType: 'vc-issuer',
+    url, capabilityAgent, ipAllowList, meterId, zcaps, configOptions, oauth2
+  });
+}
 
 export async function createMeter({capabilityAgent, serviceType} = {}) {
   // create signer using the application's capability invocation key
@@ -48,50 +114,6 @@ export async function createMeter({capabilityAgent, serviceType} = {}) {
   return {id: `${meterService}/${id}`};
 }
 
-// FIXME: move to `createIssuerConfig` and make `createConfig` create a
-// status instance instead
-export async function createConfig({
-  capabilityAgent, ipAllowList, meterId, zcaps, statusListOptions,
-  oauth2 = false, suiteName = 'Ed25519Signature2020'
-} = {}) {
-  if(!meterId) {
-    // create a meter for the issuer
-    ({id: meterId} = await createMeter({
-      capabilityAgent, serviceType: 'vc-issuer'
-    }));
-  }
-
-  // create service object
-  const config = {
-    sequence: 0,
-    controller: capabilityAgent.id,
-    issueOptions: {suiteName},
-    meterId
-  };
-  if(ipAllowList) {
-    config.ipAllowList = ipAllowList;
-  }
-  if(zcaps) {
-    config.zcaps = zcaps;
-  }
-  if(statusListOptions) {
-    config.statusListOptions = statusListOptions;
-  }
-  if(oauth2) {
-    const {baseUri} = bedrock.config.server;
-    config.authorization = {
-      oauth2: {
-        issuerConfigUrl: `${baseUri}${mockData.oauth2IssuerConfigRoute}`
-      }
-    };
-  }
-
-  const zcapClient = createZcapClient({capabilityAgent});
-  const url = `${mockData.baseUrl}/issuers`;
-  const response = await zcapClient.write({url, json: config});
-  return response.data;
-}
-
 export async function getConfig({id, capabilityAgent, accessToken}) {
   if(accessToken) {
     // do OAuth2
@@ -102,6 +124,9 @@ export async function getConfig({id, capabilityAgent, accessToken}) {
       }
     });
     return data;
+  }
+  if(!capabilityAgent) {
+    throw new Error('Either "capabilityAgent" or "accessToken" is required.');
   }
   // do zcap
   const zcapClient = createZcapClient({capabilityAgent});
@@ -226,6 +251,17 @@ export async function createKeystoreAgent({capabilityAgent, ipAllowList}) {
   return keystoreAgent;
 }
 
+export async function createStatusList({
+  url, capabilityAgent, capability, statusListOptions
+}) {
+  const zcapClient = createZcapClient({capabilityAgent});
+  const response = await zcapClient.write({
+    url, json: statusListOptions, capability
+  });
+  const statusListId = response.headers.get('location');
+  return {id: statusListId};
+}
+
 export function createZcapClient({
   capabilityAgent, delegationSigner, invocationSigner
 }) {
@@ -258,9 +294,11 @@ export async function getCredentialStatus({verifiableCredential}) {
   }
   let slcUrl;
   let statusListIndexProperty;
-  if(credentialStatus.type === 'RevocationList2020Status') {
-    slcUrl = credentialStatus.revocationListCredential;
-    statusListIndexProperty = 'revocationListIndex';
+  if(credentialStatus.type === 'TerseBitstringStatusList') {
+    // FIXME: retrieve issuer controller doc and get status list based
+    // on hash of VM used to sign VC... via terse-bitstring-status-list lib
+    // if possible
+    throw new Error('"TerseBitstringStatusList" not implemented.');
   } else {
     slcUrl = credentialStatus.statusListCredential;
     statusListIndexProperty = 'statusListIndex';
@@ -276,6 +314,119 @@ export async function getCredentialStatus({verifiableCredential}) {
     credentialStatus[statusListIndexProperty], 10);
   const status = list.getStatus(statusListIndex);
   return {status, statusListCredential: slcUrl};
+}
+
+export async function provisionDependencies() {
+  const secret = '53ad64ce-8e1d-11ec-bb12-10bf48838a41';
+  const handle = 'test';
+  const capabilityAgent = await CapabilityAgent.fromSecret({secret, handle});
+
+  // create keystore for capability agent
+  const keystoreAgent = await createKeystoreAgent({capabilityAgent});
+
+  const [
+    {
+      issuerConfig,
+      statusIssueZcap
+    }
+  ] = await Promise.all([
+    provisionIssuer({capabilityAgent, keystoreAgent})
+  ]);
+
+  return {
+    capabilityAgent,
+    issuerConfig,
+    statusIssueZcap
+  };
+}
+
+export async function provisionIssuer({capabilityAgent, keystoreAgent}) {
+  // generate key for signing VCs (make it a did:key DID for simplicity)
+  const assertionMethodKey = await keystoreAgent.generateKey({
+    type: 'asymmetric',
+    publicAliasTemplate: 'did:key:{publicKeyMultibase}#{publicKeyMultibase}'
+  });
+
+  // create EDV for storage (creating hmac and kak in the process)
+  const {
+    edvConfig,
+    hmac,
+    keyAgreementKey
+  } = await createEdv({capabilityAgent, keystoreAgent});
+
+  // get service agent to delegate to
+  const issuerServiceAgentUrl =
+    `${mockData.baseUrl}/service-agents/${encodeURIComponent('vc-issuer')}`;
+  const {data: issuerServiceAgent} = await httpClient.get(
+    issuerServiceAgentUrl, {agent});
+
+  // delegate edv, hmac, and key agreement key zcaps to service agent
+  const {id: edvId} = edvConfig;
+  const zcaps = {};
+  zcaps.edv = await delegate({
+    controller: issuerServiceAgent.id,
+    delegator: capabilityAgent,
+    invocationTarget: edvId
+  });
+  const {keystoreId} = keystoreAgent;
+  zcaps.hmac = await delegate({
+    capability: `urn:zcap:root:${encodeURIComponent(keystoreId)}`,
+    controller: issuerServiceAgent.id,
+    invocationTarget: hmac.id,
+    delegator: capabilityAgent
+  });
+  zcaps.keyAgreementKey = await delegate({
+    capability: `urn:zcap:root:${encodeURIComponent(keystoreId)}`,
+    controller: issuerServiceAgent.id,
+    invocationTarget: keyAgreementKey.kmsId,
+    delegator: capabilityAgent
+  });
+  zcaps.assertionMethod = await delegate({
+    capability: `urn:zcap:root:${encodeURIComponent(keystoreId)}`,
+    controller: issuerServiceAgent.id,
+    invocationTarget: assertionMethodKey.kmsId,
+    delegator: capabilityAgent
+  });
+
+  // create issuer instance w/ oauth2-based authz
+  const issuerConfig = await createIssuerConfig(
+    {capabilityAgent, zcaps, oauth2: true});
+  const {id: issuerId} = issuerConfig;
+  const issuerRootZcap = `urn:zcap:root:${encodeURIComponent(issuerId)}`;
+
+  // insert examples context
+  const examplesContextId = 'https://www.w3.org/2018/credentials/examples/v1';
+  const {examplesContext} = mockData;
+  const client = createZcapClient({capabilityAgent});
+  const url = `${issuerId}/contexts`;
+  await client.write({
+    url, json: {id: examplesContextId, context: examplesContext},
+    capability: issuerRootZcap
+  });
+
+  // insert prc context
+  const prcContextId = 'https://w3id.org/citizenship/v1';
+  const {prcCredentialContext} = mockData;
+  await client.write({
+    url, json: {id: prcContextId, context: prcCredentialContext},
+    capability: issuerRootZcap
+  });
+
+  // delegate issuer root zcap to status service
+  const statusServiceAgentUrl =
+    `${mockData.baseUrl}/service-agents/${encodeURIComponent('vc-status')}`;
+  const {data: statusServiceAgent} = await httpClient.get(
+    statusServiceAgentUrl, {agent});
+
+  // zcap to issue a credential
+  const statusIssueZcap = await delegate({
+    capability: issuerRootZcap,
+    controller: statusServiceAgent.id,
+    invocationTarget: `${issuerId}/credentials/issue`,
+    delegator: capabilityAgent
+  });
+
+  return {issuerConfig, statusIssueZcap};
 }
 
 export async function revokeDelegatedCapability({

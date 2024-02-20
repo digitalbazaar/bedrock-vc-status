@@ -27,9 +27,12 @@ config.mongodb.dropCollections.collections = [];
 // allow self-signed certs in test framework
 config['https-agent'].rejectUnauthorized = false;
 
-// create test application identity
-// ...and `ensureConfigOverride` has already been set via
-// `bedrock-app-identity` so it doesn't have to be set here
+// create test application identities
+config['app-identity'].seeds.services['vc-issuer'] = {
+  id: 'did:key:z6MkiZ433VBt3jx19vBeHwshV37imwfA4FVYbN7nyEcccRg1',
+  seedMultibase: 'z1AdSyTUt63FBfJNbNGW4WQxvyWeEuKC3wXfU9zPAXgoCu4',
+  serviceType: 'vc-issuer'
+};
 config['app-identity'].seeds.services['vc-status'] = {
   id: 'did:key:z6MkrH839XwPCUQ2TkA6ifehciWnEvzuQ2njc6J19fpuP5oN',
   seedMultibase: 'z1AgvAGfbairK3AV6GqbeF8gSpYZXftQsGb5DTjptgawNyn',
@@ -38,3 +41,6 @@ config['app-identity'].seeds.services['vc-status'] = {
 
 // use local KMS for testing
 config['service-agent'].kms.baseUrl = 'https://localhost:18443/kms';
+
+// disable veres one fetching
+config['did-io'].methodOverrides.v1.disableFetch = true;
