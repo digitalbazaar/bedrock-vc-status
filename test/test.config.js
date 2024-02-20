@@ -16,7 +16,7 @@ config.mocha.options.fullTrace = true;
 config.mocha.tests.push(path.join(__dirname, 'mocha'));
 
 // MongoDB
-config.mongodb.name = 'bedrock_vc_issuer_test';
+config.mongodb.name = 'bedrock_vc_status_test';
 config.mongodb.dropCollections.onInit = true;
 config.mongodb.dropCollections.collections = [];
 // drop all collections on initialization
