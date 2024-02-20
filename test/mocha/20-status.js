@@ -57,7 +57,7 @@ describe('status APIs', () => {
     });
   });
 
-  describe.skip('/credentials/status', () => {
+  describe('/credentials/status', () => {
     // FIXME: add "BitstringStatusList" test
     // FIXME: add "BitstringStatusList" test w/"<statusPurpose>/<listIndex>" id
     it('updates a "StatusList2021" revocation credential status',
@@ -82,9 +82,12 @@ describe('status APIs', () => {
 
         // pretend a VC with this `credentialId` has been issued
         const credentialId = `urn:uuid:${uuid()}`;
+        const statusListIndex = '0';
 
         // get VC status
-        const statusInfo = await helpers.getCredentialStatus({credentialId});
+        const statusInfo = await helpers.getCredentialStatus({
+          statusListCredential, statusListIndex
+        });
         let {status} = statusInfo;
         status.should.equal(false);
 
@@ -101,7 +104,7 @@ describe('status APIs', () => {
                 type: 'StatusList2021Entry',
                 statusPurpose: 'revocation',
                 statusListCredential,
-                statusListIndex: 0
+                statusListIndex
               }
             }
           });
@@ -112,13 +115,15 @@ describe('status APIs', () => {
 
         // force publication of new SLC
         await zcapClient.write({
-          url: `${statusInstanceId}/publish`,
+          url: `${statusListCredential}/publish`,
           capability: statusInstanceRootZcap,
           json: {}
         });
 
         // check status of VC has changed
-        ({status} = await helpers.getCredentialStatus({credentialId}));
+        ({status} = await helpers.getCredentialStatus({
+          statusListCredential, statusListIndex
+        }));
         status.should.equal(true);
       });
   });
