@@ -62,7 +62,7 @@ export async function createConfig({
 export async function createStatusConfig({
   capabilityAgent, ipAllowList, meterId, zcaps, oauth2 = false
 } = {}) {
-  const url = `${mockData.baseUrl}/vc-status`;
+  const url = `${mockData.baseUrl}/statuses`;
   return createConfig({
     serviceType: 'vc-status',
     url, capabilityAgent, ipAllowList, meterId, zcaps, oauth2
