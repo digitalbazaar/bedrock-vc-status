@@ -25,13 +25,13 @@ describe('status APIs', () => {
     statusInstanceRootZcap =
       `urn:zcap:root:${encodeURIComponent(statusInstanceId)}`;
   });
-  describe('/slcs', () => {
+  describe('/status-lists', () => {
     it('creates a "StatusList2021" status list', async () => {
       const statusListOptions = {
         // FIXME: needs to support both:
         // /<listId>
         // /statusPurpose/<listIndex>
-        id: `${statusInstanceId}/slcs/${uuid()}`,
+        id: `${statusInstanceId}/status-lists/${uuid()}`,
         type: 'StatusList2021',
         indexAllocator: `urn:uuid:${uuid()}`,
         length: 131072,
@@ -41,7 +41,7 @@ describe('status APIs', () => {
       let result;
       try {
         result = await helpers.createStatusList({
-          url: `${statusInstanceId}/slcs`,
+          url: `${statusInstanceId}/status-lists`,
           capabilityAgent,
           capability: statusInstanceRootZcap,
           statusListOptions
@@ -67,14 +67,14 @@ describe('status APIs', () => {
           // FIXME: needs to support both:
           // /<listId>
           // /statusPurpose/<listIndex>
-          id: `${statusInstanceId}/slcs/${uuid()}`,
+          id: `${statusInstanceId}/status-lists/${uuid()}`,
           type: 'StatusList2021',
           indexAllocator: `urn:uuid:${uuid()}`,
           length: 131072,
           statusPurpose: 'revocation'
         };
         const {id: statusListCredential} = await helpers.createStatusList({
-          url: `${statusInstanceId}/slcs`,
+          url: `${statusInstanceId}/status-lists`,
           capabilityAgent,
           capability: statusInstanceRootZcap,
           statusListOptions
