@@ -27,11 +27,9 @@ describe('status APIs', () => {
   });
   describe('/status-lists', () => {
     it('creates a "StatusList2021" status list', async () => {
+      const statusListId = `${statusInstanceId}/status-lists/${uuid()}`;
       const statusListOptions = {
-        // FIXME: needs to support both:
-        // /<listId>
-        // /statusPurpose/<listIndex>
-        id: `${statusInstanceId}/status-lists/${uuid()}`,
+        credentialId: statusListId,
         type: 'StatusList2021',
         indexAllocator: `urn:uuid:${uuid()}`,
         length: 131072,
@@ -41,7 +39,7 @@ describe('status APIs', () => {
       let result;
       try {
         result = await helpers.createStatusList({
-          url: `${statusInstanceId}/status-lists`,
+          url: statusListId,
           capabilityAgent,
           capability: statusInstanceRootZcap,
           statusListOptions
@@ -51,7 +49,37 @@ describe('status APIs', () => {
       }
       assertNoError(error);
       should.exist(result.id);
-      result.id.should.equal(statusListOptions.id);
+      result.id.should.equal(statusListId);
+
+      // FIXME: get status list and make assertions on it
+    });
+
+    // FIXME: add test with `credential ID` that doesn't match status instance
+
+    it('creates a terse "StatusList2021" status list', async () => {
+      const statusListId = `${statusInstanceId}/status-lists/revocation/0`;
+      const statusListOptions = {
+        credentialId: statusListId,
+        type: 'StatusList2021',
+        indexAllocator: `urn:uuid:${uuid()}`,
+        length: 131072,
+        statusPurpose: 'revocation'
+      };
+      let error;
+      let result;
+      try {
+        result = await helpers.createStatusList({
+          url: statusListId,
+          capabilityAgent,
+          capability: statusInstanceRootZcap,
+          statusListOptions
+        });
+      } catch(e) {
+        error = e;
+      }
+      assertNoError(error);
+      should.exist(result.id);
+      result.id.should.equal(statusListId);
 
       // FIXME: get status list and make assertions on it
     });
@@ -59,72 +87,132 @@ describe('status APIs', () => {
 
   describe('/credentials/status', () => {
     // FIXME: add "BitstringStatusList" test
-    // FIXME: add "BitstringStatusList" test w/"<statusPurpose>/<listIndex>" id
-    it('updates a "StatusList2021" revocation credential status',
-      async () => {
-        // FIXME: first create a status list
-        const statusListOptions = {
-          // FIXME: needs to support both:
-          // /<listId>
-          // /statusPurpose/<listIndex>
-          id: `${statusInstanceId}/status-lists/${uuid()}`,
-          type: 'StatusList2021',
-          indexAllocator: `urn:uuid:${uuid()}`,
-          length: 131072,
-          statusPurpose: 'revocation'
-        };
-        const {id: statusListCredential} = await helpers.createStatusList({
-          url: `${statusInstanceId}/status-lists`,
-          capabilityAgent,
-          capability: statusInstanceRootZcap,
-          statusListOptions
-        });
-
-        // pretend a VC with this `credentialId` has been issued
-        const credentialId = `urn:uuid:${uuid()}`;
-        const statusListIndex = '0';
-
-        // get VC status
-        const statusInfo = await helpers.getCredentialStatus({
-          statusListCredential, statusListIndex
-        });
-        let {status} = statusInfo;
-        status.should.equal(false);
-
-        // then revoke VC
-        const zcapClient = helpers.createZcapClient({capabilityAgent});
-        let error;
-        try {
-          await zcapClient.write({
-            url: `${statusInstanceId}/credentials/status`,
-            capability: statusInstanceRootZcap,
-            json: {
-              credentialId,
-              credentialStatus: {
-                type: 'StatusList2021Entry',
-                statusPurpose: 'revocation',
-                statusListCredential,
-                statusListIndex
-              }
-            }
-          });
-        } catch(e) {
-          error = e;
-        }
-        assertNoError(error);
-
-        // force publication of new SLC
-        await zcapClient.write({
-          url: `${statusListCredential}/publish`,
-          capability: statusInstanceRootZcap,
-          json: {}
-        });
-
-        // check status of VC has changed
-        ({status} = await helpers.getCredentialStatus({
-          statusListCredential, statusListIndex
-        }));
-        status.should.equal(true);
+    it('updates a "StatusList2021" revocation status', async () => {
+      // first create a status list
+      const statusListId = `${statusInstanceId}/status-lists/${uuid()}`;
+      const statusListOptions = {
+        credentialId: statusListId,
+        type: 'StatusList2021',
+        indexAllocator: `urn:uuid:${uuid()}`,
+        length: 131072,
+        statusPurpose: 'revocation'
+      };
+      const {id: statusListCredential} = await helpers.createStatusList({
+        url: statusListId,
+        capabilityAgent,
+        capability: statusInstanceRootZcap,
+        statusListOptions
       });
+
+      // pretend a VC with this `credentialId` has been issued
+      const credentialId = `urn:uuid:${uuid()}`;
+      const statusListIndex = '0';
+
+      // get VC status
+      const statusInfo = await helpers.getCredentialStatus({
+        statusListCredential, statusListIndex
+      });
+      let {status} = statusInfo;
+      status.should.equal(false);
+
+      // then revoke VC
+      const zcapClient = helpers.createZcapClient({capabilityAgent});
+      let error;
+      try {
+        await zcapClient.write({
+          url: `${statusInstanceId}/credentials/status`,
+          capability: statusInstanceRootZcap,
+          json: {
+            credentialId,
+            credentialStatus: {
+              type: 'StatusList2021Entry',
+              statusPurpose: 'revocation',
+              statusListCredential,
+              statusListIndex
+            }
+          }
+        });
+      } catch(e) {
+        error = e;
+      }
+      assertNoError(error);
+
+      // force refresh status list
+      await zcapClient.write({
+        url: `${statusListCredential}?refresh=true`,
+        capability: statusInstanceRootZcap,
+        json: {}
+      });
+
+      // check status of VC has changed
+      ({status} = await helpers.getCredentialStatus({
+        statusListCredential, statusListIndex
+      }));
+      status.should.equal(true);
+    });
+
+    it('updates a terse "StatusList2021" revocation status', async () => {
+      // first create a terse status list
+      const statusListId = `${statusInstanceId}/status-lists/revocation/0`;
+      const statusListOptions = {
+        credentialId: statusListId,
+        type: 'StatusList2021',
+        indexAllocator: `urn:uuid:${uuid()}`,
+        length: 131072,
+        statusPurpose: 'revocation'
+      };
+      const {id: statusListCredential} = await helpers.createStatusList({
+        url: statusListId,
+        capabilityAgent,
+        capability: statusInstanceRootZcap,
+        statusListOptions
+      });
+
+      // pretend a VC with this `credentialId` has been issued
+      const credentialId = `urn:uuid:${uuid()}`;
+      const statusListIndex = '0';
+
+      // get VC status
+      const statusInfo = await helpers.getCredentialStatus({
+        statusListCredential, statusListIndex
+      });
+      let {status} = statusInfo;
+      status.should.equal(false);
+
+      // then revoke VC
+      const zcapClient = helpers.createZcapClient({capabilityAgent});
+      let error;
+      try {
+        await zcapClient.write({
+          url: `${statusInstanceId}/credentials/status`,
+          capability: statusInstanceRootZcap,
+          json: {
+            credentialId,
+            credentialStatus: {
+              type: 'StatusList2021Entry',
+              statusPurpose: 'revocation',
+              statusListCredential,
+              statusListIndex
+            }
+          }
+        });
+      } catch(e) {
+        error = e;
+      }
+      assertNoError(error);
+
+      // force refresh status list
+      await zcapClient.write({
+        url: `${statusListCredential}?refresh=true`,
+        capability: statusInstanceRootZcap,
+        json: {}
+      });
+
+      // check status of VC has changed
+      ({status} = await helpers.getCredentialStatus({
+        statusListCredential, statusListIndex
+      }));
+      status.should.equal(true);
+    });
   });
 });
