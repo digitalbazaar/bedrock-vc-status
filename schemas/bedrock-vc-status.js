@@ -58,6 +58,9 @@ export const updateCredentialStatusBody = {
       required: ['type', 'statusPurpose'],
       additionalProperties: false,
       properties: {
+        id: {
+          type: 'string'
+        },
         type: {
           type: 'string'
         },
@@ -71,6 +74,9 @@ export const updateCredentialStatusBody = {
           type: 'string'
         }
       }
+    },
+    status: {
+      type: 'boolean'
     }
   }
 };
