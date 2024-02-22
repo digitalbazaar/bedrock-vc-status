@@ -297,6 +297,11 @@ export async function getCredentialStatus({
   return {status, statusListCredential, statusListIndex};
 }
 
+export async function getStatusListCredential({statusListId}) {
+  const {data: slc} = await httpClient.get(statusListId, {agent: httpsAgent});
+  return slc;
+}
+
 export async function provisionDependencies() {
   const secret = '53ad64ce-8e1d-11ec-bb12-10bf48838a41';
   const handle = 'test';

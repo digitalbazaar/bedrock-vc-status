@@ -51,10 +51,89 @@ describe('status APIs', () => {
       should.exist(result.id);
       result.id.should.equal(statusListId);
 
-      // FIXME: get status list and make assertions on it
+      // get status list and make assertions on it
+      const slc = await helpers.getStatusListCredential({statusListId});
+      should.exist(slc);
+      slc.should.include.keys([
+        'id', 'credentialSubject', 'issuanceDate', 'expirationDate'
+      ]);
+      slc.id.should.equal(statusListOptions.credentialId);
+      slc.id.should.equal(statusListId);
+      slc.credentialSubject.should.include.keys([
+        'id', 'type', 'encodedList', 'statusPurpose'
+      ]);
     });
 
-    // FIXME: add test with `credential ID` that doesn't match status instance
+    it('creates a status list with non-equal credential ID', async () => {
+      // suffix must match
+      const suffix = `/status-lists/${uuid()}`;
+      const statusListId = `${statusInstanceId}${suffix}`;
+      const statusListOptions = {
+        credentialId: `https://foo.example/anything/111${suffix}`,
+        type: 'StatusList2021',
+        indexAllocator: `urn:uuid:${uuid()}`,
+        length: 131072,
+        statusPurpose: 'revocation'
+      };
+      let error;
+      let result;
+      try {
+        result = await helpers.createStatusList({
+          url: statusListId,
+          capabilityAgent,
+          capability: statusInstanceRootZcap,
+          statusListOptions
+        });
+      } catch(e) {
+        error = e;
+      }
+      assertNoError(error);
+      should.exist(result.id);
+      result.id.should.equal(statusListId);
+
+      // get status list and make assertions on it
+      const slc = await helpers.getStatusListCredential({statusListId});
+      should.exist(slc);
+      slc.should.include.keys([
+        'id', 'credentialSubject', 'issuanceDate', 'expirationDate'
+      ]);
+      slc.id.should.equal(statusListOptions.credentialId);
+      slc.id.should.not.equal(statusListId);
+      slc.credentialSubject.should.include.keys([
+        'id', 'type', 'encodedList', 'statusPurpose'
+      ]);
+    });
+
+    it('create fails w/ non-matching credential ID suffix', async () => {
+      // suffix must match
+      const localId = uuid();
+      const suffix = `/status-lists/${localId}`;
+      const statusListId = `${statusInstanceId}${suffix}`;
+      const statusListOptions = {
+        credentialId: `https://foo.example/not-allowed/${localId}`,
+        type: 'StatusList2021',
+        indexAllocator: `urn:uuid:${uuid()}`,
+        length: 131072,
+        statusPurpose: 'revocation'
+      };
+      let error;
+      let result;
+      try {
+        result = await helpers.createStatusList({
+          url: statusListId,
+          capabilityAgent,
+          capability: statusInstanceRootZcap,
+          statusListOptions
+        });
+      } catch(e) {
+        error = e;
+      }
+      should.not.exist(result);
+      should.exist(error);
+      error.data.message.should.equal(
+        'Credential ID must end in status list suffix ' +
+        `("/status-lists/${localId}").`);
+    });
 
     it('creates a terse "StatusList2021" status list', async () => {
       const statusListId = `${statusInstanceId}/status-lists/revocation/0`;
@@ -81,7 +160,86 @@ describe('status APIs', () => {
       should.exist(result.id);
       result.id.should.equal(statusListId);
 
-      // FIXME: get status list and make assertions on it
+      // get status list and make assertions on it
+      const slc = await helpers.getStatusListCredential({statusListId});
+      should.exist(slc);
+      slc.should.include.keys([
+        'id', 'credentialSubject', 'issuanceDate', 'expirationDate'
+      ]);
+      slc.id.should.equal(statusListId);
+      slc.credentialSubject.should.include.keys([
+        'id', 'type', 'encodedList', 'statusPurpose'
+      ]);
+    });
+
+    it('creates a terse status list with non-equal credential ID', async () => {
+      // suffix must match
+      const suffix = `/status-lists/revocation/0`;
+      const statusListId = `${statusInstanceId}${suffix}`;
+      const statusListOptions = {
+        credentialId: `https://foo.example/anything/111/${suffix}`,
+        type: 'StatusList2021',
+        indexAllocator: `urn:uuid:${uuid()}`,
+        length: 131072,
+        statusPurpose: 'revocation'
+      };
+      let error;
+      let result;
+      try {
+        result = await helpers.createStatusList({
+          url: statusListId,
+          capabilityAgent,
+          capability: statusInstanceRootZcap,
+          statusListOptions
+        });
+      } catch(e) {
+        error = e;
+      }
+      assertNoError(error);
+      should.exist(result.id);
+      result.id.should.equal(statusListId);
+
+      // get status list and make assertions on it
+      const slc = await helpers.getStatusListCredential({statusListId});
+      should.exist(slc);
+      slc.should.include.keys([
+        'id', 'credentialSubject', 'issuanceDate', 'expirationDate'
+      ]);
+      slc.id.should.equal(statusListOptions.credentialId);
+      slc.id.should.not.equal(statusListId);
+      slc.credentialSubject.should.include.keys([
+        'id', 'type', 'encodedList', 'statusPurpose'
+      ]);
+    });
+
+    it('create terse fails w/ non-matching credential ID suffix', async () => {
+      // suffix must match
+      const suffix = `/status-lists/revocation/0`;
+      const statusListId = `${statusInstanceId}${suffix}`;
+      const statusListOptions = {
+        credentialId: `https://foo.example/not-allowed/revocation/0`,
+        type: 'StatusList2021',
+        indexAllocator: `urn:uuid:${uuid()}`,
+        length: 131072,
+        statusPurpose: 'revocation'
+      };
+      let error;
+      let result;
+      try {
+        result = await helpers.createStatusList({
+          url: statusListId,
+          capabilityAgent,
+          capability: statusInstanceRootZcap,
+          statusListOptions
+        });
+      } catch(e) {
+        error = e;
+      }
+      should.not.exist(result);
+      should.exist(error);
+      error.data.message.should.equal(
+        'Credential ID must end in status list suffix ' +
+        '("/status-lists/revocation/0").');
     });
   });
 
