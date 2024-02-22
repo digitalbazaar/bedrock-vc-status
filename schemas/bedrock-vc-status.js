@@ -6,13 +6,12 @@ import {MAX_LIST_SIZE} from '../lib/constants.js';
 export const createStatusListBody = {
   title: 'Create Status List',
   type: 'object',
-  required: ['id', 'type', 'indexAllocator', 'length', 'statusPurpose'],
   additionalProperties: false,
+  required: [
+    'credentialId', 'type', 'indexAllocator', 'length', 'statusPurpose'
+  ],
   properties: {
-    // FIXME: needs to support both:
-    // /<listId>
-    // /statusPurpose/<listIndex>
-    id: {
+    credentialId: {
       type: 'string'
     },
     type: {
@@ -74,12 +73,4 @@ export const updateCredentialStatusBody = {
       }
     }
   }
-};
-
-export const publishSlcBody = {
-  title: 'Publish Status List Credential',
-  type: 'object',
-  additionalProperties: false,
-  // body must be empty
-  properties: {}
 };
