@@ -177,7 +177,7 @@ describe('status APIs', () => {
       const suffix = `/status-lists/revocation/0`;
       const statusListId = `${statusInstanceId}${suffix}`;
       const statusListOptions = {
-        credentialId: `https://foo.example/anything/111/${suffix}`,
+        credentialId: `https://foo.example/anything/111${suffix}`,
         type: 'StatusList2021',
         indexAllocator: `urn:uuid:${uuid()}`,
         length: 131072,
@@ -282,6 +282,7 @@ describe('status APIs', () => {
           capability: statusInstanceRootZcap,
           json: {
             credentialId,
+            indexAllocator: statusListOptions.indexAllocator,
             credentialStatus: {
               type: 'StatusList2021Entry',
               statusPurpose: 'revocation',
@@ -307,6 +308,60 @@ describe('status APIs', () => {
         statusListCredential, statusListIndex
       }));
       status.should.equal(true);
+    });
+
+    it('fails to set status when no "indexAllocator" given', async () => {
+      // first create a status list
+      const statusListId = `${statusInstanceId}/status-lists/${uuid()}`;
+      const statusListOptions = {
+        credentialId: statusListId,
+        type: 'StatusList2021',
+        indexAllocator: `urn:uuid:${uuid()}`,
+        length: 131072,
+        statusPurpose: 'revocation'
+      };
+      const {id: statusListCredential} = await helpers.createStatusList({
+        url: statusListId,
+        capabilityAgent,
+        capability: statusInstanceRootZcap,
+        statusListOptions
+      });
+
+      // pretend a VC with this `credentialId` has been issued
+      const credentialId = `urn:uuid:${uuid()}`;
+      const statusListIndex = '0';
+
+      // get VC status, should work w/ initialized `false` value
+      const statusInfo = await helpers.getCredentialStatus({
+        statusListCredential, statusListIndex
+      });
+      const {status} = statusInfo;
+      status.should.equal(false);
+
+      // try to revoke VC w/o `indexAllocator`
+      const zcapClient = helpers.createZcapClient({capabilityAgent});
+      let error;
+      try {
+        await zcapClient.write({
+          url: `${statusInstanceId}/credentials/status`,
+          capability: statusInstanceRootZcap,
+          json: {
+            credentialId,
+            credentialStatus: {
+              type: 'StatusList2021Entry',
+              statusPurpose: 'revocation',
+              statusListCredential,
+              statusListIndex
+            }
+          }
+        });
+      } catch(e) {
+        error = e;
+      }
+      should.exist(error);
+      error.data.message.should.equal(
+        '"indexAllocator" is required when setting the status of a ' +
+        'credential the first time.');
     });
 
     it('updates a terse "StatusList2021" revocation status', async () => {
@@ -346,6 +401,7 @@ describe('status APIs', () => {
           capability: statusInstanceRootZcap,
           json: {
             credentialId,
+            indexAllocator: statusListOptions.indexAllocator,
             credentialStatus: {
               type: 'StatusList2021Entry',
               statusPurpose: 'revocation',
