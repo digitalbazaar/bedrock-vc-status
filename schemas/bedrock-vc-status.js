@@ -7,8 +7,6 @@ import {MAX_LIST_SIZE} from '../lib/constants.js';
 const indexAllocator = {
   // an ID (URL) referring to an index allocator
   type: 'string',
-  // FIXME: pull in schema from bedrock-validation that uses
-  // `uri` pattern from ajv-formats once available
   pattern: '^(.+):(.+)$'
 };
 
