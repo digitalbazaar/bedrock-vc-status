@@ -7,7 +7,8 @@ import {importJWK, SignJWT} from 'jose';
 import {KeystoreAgent, KmsClient} from '@digitalbazaar/webkms-client';
 import {agent} from '@bedrock/https-agent';
 import {CapabilityAgent} from '@digitalbazaar/webkms-client';
-import {decodeList} from '@digitalbazaar/vc-status-list';
+import {decodeList} from '@digitalbazaar/vc-bitstring-status-list';
+import {decodeList as decodeList2021} from '@digitalbazaar/vc-status-list';
 import {didIo} from '@bedrock/did-io';
 import {Ed25519Signature2020} from '@digitalbazaar/ed25519-signature-2020';
 import {EdvClient} from '@digitalbazaar/edv-client';
@@ -290,9 +291,14 @@ export async function getCredentialStatus({
 }) {
   const {data: slc} = await httpClient.get(
     statusListCredential, {agent: httpsAgent});
-
   const {encodedList} = slc.credentialSubject;
-  const list = await decodeList({encodedList});
+  let list;
+  if(slc.type.includes('BitstringStatusListCredential')) {
+    list = await decodeList({encodedList});
+  } else {
+    // type must be `StatusListCredential`
+    list = await decodeList2021({encodedList});
+  }
   const status = list.getStatus(parseInt(statusListIndex, 10));
   return {status, statusListCredential, statusListIndex};
 }
