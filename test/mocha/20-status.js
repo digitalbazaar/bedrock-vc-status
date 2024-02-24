@@ -26,9 +26,7 @@ describe('status APIs', () => {
       `urn:zcap:root:${encodeURIComponent(statusInstanceId)}`;
   });
   describe('/status-lists', () => {
-    // FIXME: enable `BitstringStatusList` tests once br-vc-status-list is
-    // updated and imported by bedrock-vc-issuer
-    it.only('creates a "StatusList2021" status list', async () => {
+    it('creates a "StatusList2021" status list', async () => {
       const statusListId = `${statusInstanceId}/status-lists/${uuid()}`;
       const statusListOptions = {
         credentialId: statusListId,
