@@ -15,6 +15,7 @@ import {EdvClient} from '@digitalbazaar/edv-client';
 import {getAppIdentity} from '@bedrock/app-identity';
 import {httpClient} from '@digitalbazaar/http-client';
 import {httpsAgent} from '@bedrock/https-agent';
+import {parseEnvelope} from '@bedrock/vc-status/lib/envelopes.js';
 import {ZcapClient} from '@digitalbazaar/ezcap';
 
 import {mockData} from './mock.data.js';
@@ -289,8 +290,16 @@ export async function delegate({
 export async function getCredentialStatus({
   statusListCredential, statusListIndex
 }) {
-  const {data: slc} = await httpClient.get(
+  let {data: slc} = await httpClient.get(
     statusListCredential, {agent: httpsAgent});
+
+  // parse enveloped VC as needed
+  if(slc.type === 'EnvelopedVerifiableCredential') {
+    ({verifiableCredential: slc} = await parseEnvelope({
+      envelopedVerifiableCredential: slc
+    }));
+  }
+
   const {encodedList} = slc.credentialSubject;
   let list;
   if(slc.type.includes('BitstringStatusListCredential')) {
@@ -304,7 +313,13 @@ export async function getCredentialStatus({
 }
 
 export async function getStatusListCredential({statusListId}) {
-  const {data: slc} = await httpClient.get(statusListId, {agent: httpsAgent});
+  let {data: slc} = await httpClient.get(statusListId, {agent: httpsAgent});
+  // parse enveloped VC as needed
+  if(slc.type === 'EnvelopedVerifiableCredential') {
+    ({verifiableCredential: slc} = await parseEnvelope({
+      envelopedVerifiableCredential: slc
+    }));
+  }
   return slc;
 }
 

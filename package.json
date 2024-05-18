@@ -36,6 +36,7 @@
     "@digitalbazaar/vc-bitstring-status-list": "digitalbazaar/vc-bitstring-status-list#main",
     "@digitalbazaar/vc-status-list": "^7.0.0",
     "assert-plus": "^1.0.0",
+    "base64url-universal": "^2.0.0",
     "bnid": "^3.0.0",
     "cors": "^2.8.5"
   },
