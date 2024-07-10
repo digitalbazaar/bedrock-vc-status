@@ -496,26 +496,28 @@ describe('status APIs', () => {
 
       // then revoke VC
       const zcapClient = helpers.createZcapClient({capabilityAgent});
-      let error;
-      try {
-        await zcapClient.write({
-          url: `${statusInstanceId}/credentials/status`,
-          capability: statusInstanceRootZcap,
-          json: {
-            credentialId,
-            indexAllocator: statusListOptions.indexAllocator,
-            credentialStatus: {
-              type: 'BitstringStatusListEntry',
-              statusPurpose: 'revocation',
-              statusListCredential,
-              statusListIndex
+      {
+        let error;
+        try {
+          await zcapClient.write({
+            url: `${statusInstanceId}/credentials/status`,
+            capability: statusInstanceRootZcap,
+            json: {
+              credentialId,
+              indexAllocator: statusListOptions.indexAllocator,
+              credentialStatus: {
+                type: 'BitstringStatusListEntry',
+                statusPurpose: 'revocation',
+                statusListCredential,
+                statusListIndex
+              }
             }
-          }
-        });
-      } catch(e) {
-        error = e;
+          });
+        } catch(e) {
+          error = e;
+        }
+        assertNoError(error);
       }
-      assertNoError(error);
 
       // force refresh status list
       await zcapClient.write({
@@ -529,6 +531,116 @@ describe('status APIs', () => {
         statusListCredential, statusListIndex
       }));
       status.should.equal(true);
+
+      // then unrevoke VC to ensure it can be switched back
+      {
+        let error;
+        try {
+          await zcapClient.write({
+            url: `${statusInstanceId}/credentials/status`,
+            capability: statusInstanceRootZcap,
+            json: {
+              credentialId,
+              indexAllocator: statusListOptions.indexAllocator,
+              credentialStatus: {
+                type: 'BitstringStatusListEntry',
+                statusPurpose: 'revocation',
+                statusListCredential,
+                statusListIndex
+              },
+              status: false
+            }
+          });
+        } catch(e) {
+          error = e;
+        }
+        assertNoError(error);
+      }
+
+      // force refresh status list
+      await zcapClient.write({
+        url: `${statusListCredential}?refresh=true`,
+        capability: statusInstanceRootZcap,
+        json: {}
+      });
+
+      // check status of VC has changed
+      ({status} = await helpers.getCredentialStatus({
+        statusListCredential, statusListIndex
+      }));
+      status.should.equal(false);
+
+      // then revoke VC again with only status type and purpose now that
+      // it has been registered with the status system
+      {
+        let error;
+        try {
+          await zcapClient.write({
+            url: `${statusInstanceId}/credentials/status`,
+            capability: statusInstanceRootZcap,
+            json: {
+              credentialId,
+              credentialStatus: {
+                type: 'BitstringStatusListEntry',
+                statusPurpose: 'revocation'
+              },
+              status: true
+            }
+          });
+        } catch(e) {
+          error = e;
+        }
+        assertNoError(error);
+      }
+
+      // force refresh status list
+      await zcapClient.write({
+        url: `${statusListCredential}?refresh=true`,
+        capability: statusInstanceRootZcap,
+        json: {}
+      });
+
+      // check status of VC has changed
+      ({status} = await helpers.getCredentialStatus({
+        statusListCredential, statusListIndex
+      }));
+      status.should.equal(true);
+
+      // then unrevoke VC again with only status type and purpose now that
+      // it has been registered with the status system
+      {
+        let error;
+        try {
+          await zcapClient.write({
+            url: `${statusInstanceId}/credentials/status`,
+            capability: statusInstanceRootZcap,
+            json: {
+              credentialId,
+              credentialStatus: {
+                type: 'BitstringStatusListEntry',
+                statusPurpose: 'revocation'
+              },
+              status: false
+            }
+          });
+        } catch(e) {
+          error = e;
+        }
+        assertNoError(error);
+      }
+
+      // force refresh status list
+      await zcapClient.write({
+        url: `${statusListCredential}?refresh=true`,
+        capability: statusInstanceRootZcap,
+        json: {}
+      });
+
+      // check status of VC has changed
+      ({status} = await helpers.getCredentialStatus({
+        statusListCredential, statusListIndex
+      }));
+      status.should.equal(false);
     });
   });
 });
