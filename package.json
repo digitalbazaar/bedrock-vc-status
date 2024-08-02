@@ -9,7 +9,7 @@
     "schemas/**/*.js"
   ],
   "scripts": {
-    "lint": "eslint ."
+    "lint": "eslint --ext .cjs,.js ."
   },
   "repository": {
     "type": "git",
@@ -51,10 +51,10 @@
     "@bedrock/validation": "^7.0.0"
   },
   "devDependencies": {
-    "eslint": "^8.46.0",
-    "eslint-config-digitalbazaar": "^5.0.1",
-    "eslint-plugin-jsdoc": "^46.4.6",
-    "eslint-plugin-unicorn": "^48.0.1"
+    "eslint": "^8.57.0",
+    "eslint-config-digitalbazaar": "^5.2.0",
+    "eslint-plugin-jsdoc": "^48.11.0",
+    "eslint-plugin-unicorn": "^55.0.0"
   },
   "directories": {
     "lib": "./lib"
