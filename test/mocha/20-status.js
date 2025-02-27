@@ -1,5 +1,5 @@
 /*!
- * Copyright (c) 2020-2024 Digital Bazaar, Inc. All rights reserved.
+ * Copyright (c) 2020-2025 Digital Bazaar, Inc. All rights reserved.
  */
 import * as helpers from './helpers.js';
 import {v4 as uuid} from 'uuid';
@@ -64,13 +64,51 @@ describe('status APIs', () => {
       ]);
     });
 
-    it('creates a "BitstringStatusList" status list', async () => {
+    it('creates a "BitstringStatusList" status list size=2^17', async () => {
       const statusListId = `${statusInstanceId}/status-lists/${uuid()}`;
       const statusListOptions = {
         credentialId: statusListId,
         type: 'BitstringStatusList',
         indexAllocator: `urn:uuid:${uuid()}`,
         length: 131072,
+        statusPurpose: 'revocation'
+      };
+      let error;
+      let result;
+      try {
+        result = await helpers.createStatusList({
+          url: statusListId,
+          capabilityAgent,
+          capability: statusInstanceRootZcap,
+          statusListOptions
+        });
+      } catch(e) {
+        error = e;
+      }
+      assertNoError(error);
+      should.exist(result.id);
+      result.id.should.equal(statusListId);
+
+      // get status list and make assertions on it
+      const slc = await helpers.getStatusListCredential({statusListId});
+      should.exist(slc);
+      slc.should.include.keys([
+        'id', 'credentialSubject', 'validFrom', 'validUntil'
+      ]);
+      slc.id.should.equal(statusListOptions.credentialId);
+      slc.id.should.equal(statusListId);
+      slc.credentialSubject.should.include.keys([
+        'id', 'type', 'encodedList', 'statusPurpose'
+      ]);
+    });
+
+    it('creates a "BitstringStatusList" status list size=2^26', async () => {
+      const statusListId = `${statusInstanceId}/status-lists/${uuid()}`;
+      const statusListOptions = {
+        credentialId: statusListId,
+        type: 'BitstringStatusList',
+        indexAllocator: `urn:uuid:${uuid()}`,
+        length: 67108864,
         statusPurpose: 'revocation'
       };
       let error;
