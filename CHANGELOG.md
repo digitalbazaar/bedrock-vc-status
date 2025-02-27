@@ -1,6 +1,6 @@
 # bedrock-vc-status ChangeLog
 
-## 1.1.0 - 2025-mm-dd
+## 1.1.0 - 2025-02-27
 
 ### Changed
 - Increase `MAX_LIST_SIZE` to accommodate lists of up to size `2^26`, which is
