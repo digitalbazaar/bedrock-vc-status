@@ -1,6 +1,6 @@
 # bedrock-vc-status ChangeLog
 
-## 1.1.1 - 2025-mm-dd
+## 1.1.1 - 2025-03-17
 
 ### Fixed
 - Use `result.modifiedCount` to enable newer mongodb driver.
