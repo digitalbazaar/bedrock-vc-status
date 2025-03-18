@@ -1,7 +1,7 @@
-# Bedrock Verifiable Credentials Status Service API module _(bedrock-vc-status)_
+# Bedrock Verifiable Credentials Status Service API module _(@bedrock/vc-status)_
 
-[![Build Status](https://img.shields.io/github/actions/workflow/status/digitalbazaar/bedrock-vc-status/main.yml)](https://github.com/digitalbazaar/bedrock-vc-status/actions?query=workflow%3A%22Bedrock+Node.js+CI%22)
-[![NPM Version](https://img.shields.io/npm/v/bedrock-vc-status.svg)](https://npm.im/bedrock-vc-status)
+[![Build Status](https://img.shields.io/github/actions/workflow/status/digitalbazaar/bedrock-vc-status/main.yaml)](https://github.com/digitalbazaar/bedrock-vc-status/actions/workflows/main.yaml)
+[![NPM Version](https://img.shields.io/npm/v/@bedrock/vc-status.svg)](https://npm.im/@bedrock/vc-status)
 
 > A VC Issuer API library for use with Bedrock applications.
 
