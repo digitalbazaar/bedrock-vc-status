@@ -1,5 +1,11 @@
 # bedrock-vc-status ChangeLog
 
+## 2.1.0 - 2025-05-dd
+
+### Changed
+- Use `@digitalbazaar/lru-memoize@4`. Existing cache defaults and options
+  are coerced from previous versions to the new version.
+
 ## 2.0.0 - 2025-03-18
 
 ### Changed
