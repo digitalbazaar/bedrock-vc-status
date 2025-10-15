@@ -1,5 +1,10 @@
 # bedrock-vc-status ChangeLog
 
+## 2.1.1 - 2025-10-xx
+
+### Fixed
+- Fix `@bedrock/app-identity` peer dependency version constraint.
+
 ## 2.1.0 - 2025-05-22
 
 ### Changed
