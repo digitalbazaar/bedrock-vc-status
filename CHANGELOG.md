@@ -1,6 +1,6 @@
 # bedrock-vc-status ChangeLog
 
-## 2.2.1 - 2025-10-dd
+## 2.2.1 - 2025-10-30
 
 ### Fixed
 - Send cache headers for non-namespaced status list reads.
