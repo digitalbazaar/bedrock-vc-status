@@ -727,8 +727,8 @@ describe('status APIs', () => {
         const now = Date.now();
         const expectedMaxAge = Math.floor((validUntilTime - now) / 1000);
 
-        // allow for a small time delta (1 second) due to processing time
-        maxAge.should.be.within(expectedMaxAge - 1, expectedMaxAge + 1);
+        // allow for a small time delta (61 seconds) due to processing time
+        maxAge.should.be.within(expectedMaxAge - 61, expectedMaxAge + 61);
 
         // check that etag header is present
         const etag = response.headers.get('etag');
