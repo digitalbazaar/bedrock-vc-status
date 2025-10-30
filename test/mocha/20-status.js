@@ -681,4 +681,58 @@ describe('status APIs', () => {
       status.should.equal(false);
     });
   });
+
+  describe('cache headers', () => {
+    it('returns correct cache headers based on credential expiration',
+      async () => {
+        // first create a terse status list
+        const statusListId = `${statusInstanceId}/status-lists/revocation/0`;
+        const statusListOptions = {
+          credentialId: statusListId,
+          type: 'BitstringStatusList',
+          indexAllocator: `urn:uuid:${uuid()}`,
+          length: 131072,
+          statusPurpose: 'revocation'
+        };
+        const {id: statusListCredential} = await helpers.createStatusList({
+          url: statusListId,
+          capabilityAgent,
+          capability: statusInstanceRootZcap,
+          statusListOptions
+        });
+
+        // get the status list credential to check its expiration
+        const slc = await helpers.getStatusListCredential({statusListId});
+        should.exist(slc.validUntil);
+
+        // make a raw HTTP request to get the response headers
+        const {httpsAgent} = await import('@bedrock/https-agent');
+        const {httpClient} = await import('@digitalbazaar/http-client');
+        const response = await httpClient.get(
+          statusListCredential, {agent: httpsAgent});
+
+        // check cache-control header
+        const cacheControl = response.headers.get('cache-control');
+        should.exist(cacheControl);
+        cacheControl.should.include('public');
+        cacheControl.should.include('max-age=');
+
+        // extract max-age value
+        const maxAgeMatch = cacheControl.match(/max-age=(\d+)/);
+        should.exist(maxAgeMatch);
+        const maxAge = parseInt(maxAgeMatch[1], 10);
+
+        // calculate expected max-age based on validUntil
+        const validUntilTime = new Date(slc.validUntil).getTime();
+        const now = Date.now();
+        const expectedMaxAge = Math.floor((validUntilTime - now) / 1000);
+
+        // allow for a small time delta (1 second) due to processing time
+        maxAge.should.be.within(expectedMaxAge - 1, expectedMaxAge + 1);
+
+        // check that etag header is present
+        const etag = response.headers.get('etag');
+        should.exist(etag);
+      });
+  });
 });
