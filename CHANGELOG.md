@@ -1,5 +1,10 @@
 # bedrock-vc-status ChangeLog
 
+## 2.2.0 - 2025-10-dd
+
+### Changed
+- Include cache headers for route `GET ${namespacedStatusList}`.
+
 ## 2.1.1 - 2025-10-15
 
 ### Fixed
