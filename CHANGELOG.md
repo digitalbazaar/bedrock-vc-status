@@ -1,5 +1,10 @@
 # bedrock-vc-status ChangeLog
 
+## 2.3.0 - 2025-mm-dd
+
+### Added
+- Add automatic zcap-refresh feature.
+
 ## 2.2.1 - 2025-10-30
 
 ### Fixed
