@@ -1,5 +1,5 @@
 /*!
- * Copyright (c) 2020-2025 Digital Bazaar, Inc. All rights reserved.
+ * Copyright (c) 2020-2026 Digital Bazaar, Inc.
  */
 import * as helpers from './helpers.js';
 import {v4 as uuid} from 'uuid';
@@ -286,6 +286,25 @@ describe('status APIs', () => {
       slc.credentialSubject.should.include.keys([
         'id', 'type', 'encodedList', 'statusPurpose'
       ]);
+    });
+
+    it('gets 404 for non-existent "BitstringStatusList" list', async () => {
+      const statusListId = `${statusInstanceId}/status-lists/revocation/1`;
+
+      let error;
+      let result;
+      try {
+        result = await helpers.getStatusListCredential({statusListId});
+      } catch(e) {
+        error = e;
+      }
+      should.not.exist(result);
+      should.exist(error);
+      should.exist(error.status);
+      error.status.should.equal(404);
+      should.exist(error.data);
+      error.data.name.should.equal('NotFoundError');
+      error.data.message.should.include('Status list credential not found.');
     });
 
     it('create terse fails w/ non-matching credential ID suffix', async () => {
